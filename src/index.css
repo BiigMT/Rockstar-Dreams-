@@ -5,69 +5,114 @@
     --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     --font-display: 'Outfit', 'Plus Jakarta Sans', sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+    --rd-bg: #08090d;
+    --rd-panel: #11131a;
+    --rd-panel-raised: #181b24;
+    --rd-line: rgba(255,255,255,.075);
+    --rd-accent: #f6b93b;
+    --rd-violet: #a78bfa;
   }
 
+  html { background: var(--rd-bg); color-scheme: dark; }
   body {
     font-family: var(--font-sans);
-    background-color: #090a0d;
+    background:
+      radial-gradient(ellipse at 50% -20%, rgba(117, 74, 190, .17), transparent 45%),
+      radial-gradient(ellipse at 100% 100%, rgba(246, 185, 59, .045), transparent 35%),
+      var(--rd-bg);
     color: #f4f4f5;
     overflow-x: hidden;
+    min-height: 100%;
+    -webkit-tap-highlight-color: transparent;
   }
+
+  button, input, select, textarea { font: inherit; }
+  button { touch-action: manipulation; }
+  ::selection { background: rgba(246,185,59,.28); color: #fff; }
 }
 
-.font-display {
-  font-family: var(--font-display);
-}
+.font-display { font-family: var(--font-display); }
+.font-mono-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.tabular-nums { font-variant-numeric: tabular-nums; }
 
-.font-mono-num {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-}
-
-.tabular-nums {
-  font-variant-numeric: tabular-nums;
-}
-
-/* Studio console micro-grid surface */
+/* Console surfaces: a subtle studio-grid texture with cinematic lighting */
 .console-surface {
-  background-color: #0e1015;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 0);
-  background-size: 20px 20px;
+  background-color: #0d0f15;
+  background-image:
+    radial-gradient(ellipse at 50% 0%, rgba(167,139,250,.065), transparent 54%),
+    radial-gradient(rgba(255,255,255,.025) 1px, transparent 0);
+  background-size: auto, 22px 22px;
 }
 
-/* Tactile hardware pad surface */
 .pad-card {
-  background: linear-gradient(180deg, #181b22 0%, #13161c 100%);
-  border: 1px solid rgba(255, 255, 255, 0.075);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 6px 18px rgba(0, 0, 0, 0.28);
+  background: linear-gradient(145deg, rgba(27,30,40,.98), rgba(16,18,25,.98));
+  border: 1px solid var(--rd-line);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.045), 0 10px 28px rgba(0,0,0,.18);
+  border-radius: 16px;
 }
 
+.pad-card-hover { transition: border-color 180ms ease, transform 180ms ease, background 180ms ease; }
 .pad-card-hover:hover {
-  background: linear-gradient(180deg, #1e222b 0%, #171a22 100%);
-  border-color: rgba(245, 158, 11, 0.25);
+  background: linear-gradient(145deg, #222532, #171923);
+  border-color: rgba(246,185,59,.25);
+  transform: translateY(-1px);
 }
 
-/* Crisp slim scrollbar */
-.slim-scroll::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+/* Unified raised controls */
+button:focus-visible, [role="button"]:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid rgba(246,185,59,.8);
+  outline-offset: 2px;
 }
 
-.slim-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.slim-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.16);
-  border-radius: 9999px;
-}
-
-.slim-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(245, 158, 11, 0.45);
-}
+.slim-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
+.slim-scroll::-webkit-scrollbar-track { background: transparent; }
+.slim-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.16); border-radius: 9999px; }
+.slim-scroll::-webkit-scrollbar-thumb:hover { background: rgba(246,185,59,.45); }
 
 .snap-transition {
-  transition-property: transform, opacity, background-color, border-color, box-shadow;
-  transition-duration: 160ms;
-  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  transition-property: transform, opacity, background-color, border-color, box-shadow, color;
+  transition-duration: 180ms;
+  transition-timing-function: cubic-bezier(.16,1,.3,1);
+}
+
+/* The navigation dock reads like a game console, with clearer active state */
+.rockstar-dock {
+  background: linear-gradient(180deg, rgba(14,15,21,.96), rgba(8,9,13,.99));
+  border-top: 1px solid rgba(255,255,255,.08);
+  padding-bottom: max(.6rem, env(safe-area-inset-bottom));
+  box-shadow: 0 -12px 30px rgba(0,0,0,.2);
+}
+.rockstar-dock-item {
+  min-height: 52px;
+  border-radius: 13px;
+  position: relative;
+}
+.rockstar-dock-item.is-active {
+  background: linear-gradient(180deg, rgba(246,185,59,.13), rgba(246,185,59,.045));
+  border-color: rgba(246,185,59,.2);
+  color: #ffd16b;
+}
+.rockstar-dock-item:not(.is-active) { color: #858895; }
+.rockstar-dock-item:not(.is-active):active { background: rgba(255,255,255,.07); transform: scale(.97); }
+.rockstar-dock-item span { letter-spacing: .035em; }
+
+/* Top status bar */
+.rockstar-top-hud {
+  background: linear-gradient(105deg, rgba(19,20,28,.98), rgba(12,13,18,.96));
+  border-bottom-color: rgba(255,255,255,.09);
+  box-shadow: 0 6px 22px rgba(0,0,0,.12);
+}
+.rockstar-top-hud .hud-accent {
+  background: linear-gradient(180deg, #ffd36b, #e79a24);
+  box-shadow: 0 0 14px rgba(246,185,59,.25);
+}
+
+@media (max-width: 420px) {
+  .rockstar-dock { padding-left: .35rem; padding-right: .35rem; }
+  .rockstar-dock-item { min-height: 49px; border-radius: 11px; }
+  .rockstar-dock-item span { font-size: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
