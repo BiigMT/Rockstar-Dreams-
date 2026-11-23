@@ -9,8 +9,8 @@
 
   body {
     font-family: var(--font-sans);
-    background-color: #090a0d;
-    color: #f4f4f5;
+    background-color: #070e1d;
+    color: #f8fafc;
     overflow-x: hidden;
   }
 }
@@ -28,46 +28,90 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Studio console micro-grid surface */
-.console-surface {
-  background-color: #0e1015;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 0);
-  background-size: 20px 20px;
+/* PES Master League / FIFA Career Mode Navy-Slate Metallic Surfaces */
+.media-centre-bg {
+  background: radial-gradient(circle at 18% 12%, #183663 0%, #0b1933 48%, #070f21 100%);
 }
 
-/* Tactile hardware pad surface */
-.pad-card {
-  background: linear-gradient(180deg, #181b22 0%, #13161c 100%);
-  border: 1px solid rgba(255, 255, 255, 0.075);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 6px 18px rgba(0, 0, 0, 0.28);
+.header-slate-bar {
+  background: linear-gradient(180deg, #1b3154 0%, #0e1e38 55%, #091529 100%);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
 }
 
-.pad-card-hover:hover {
-  background: linear-gradient(180deg, #1e222b 0%, #171a22 100%);
-  border-color: rgba(245, 158, 11, 0.25);
+.career-panel {
+  background: linear-gradient(180deg, rgba(16, 33, 62, 0.96) 0%, rgba(10, 22, 43, 0.98) 100%);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 10px 28px rgba(2, 6, 20, 0.55);
 }
 
-/* Crisp slim scrollbar */
+.career-inset {
+  background: rgba(7, 15, 31, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.crimson-ribbon {
+  background: linear-gradient(180deg, #b91c1c 0%, #8f1414 55%, #6d0e0e 100%);
+  box-shadow: 0 4px 16px rgba(153, 27, 27, 0.45);
+}
+
+.royal-active-tab {
+  background: linear-gradient(180deg, #2575ec 0%, #1754b5 100%);
+  color: #ffffff;
+  border-color: #60a5fa;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 4px 14px rgba(29, 108, 224, 0.4);
+}
+
+.silver-nav-tab {
+  background: linear-gradient(180deg, #e5e9f0 0%, #cbd5e1 100%);
+  color: #0f172a;
+  border-color: rgba(255, 255, 255, 0.65);
+}
+
+.silver-nav-tab:hover {
+  background: linear-gradient(180deg, #f8fafc 0%, #dce4ef 100%);
+}
+
+/* Slim scrollbar */
 .slim-scroll::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
 }
 
 .slim-scroll::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(15, 23, 42, 0.35);
 }
 
 .slim-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(148, 163, 184, 0.32);
   border-radius: 9999px;
 }
 
 .slim-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(245, 158, 11, 0.45);
+  background: rgba(59, 130, 246, 0.65);
 }
 
 .snap-transition {
   transition-property: transform, opacity, background-color, border-color, box-shadow;
-  transition-duration: 160ms;
+  transition-duration: 150ms;
   transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Smooth Breaking News Marquee */
+@keyframes tickerScroll {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.ticker-marquee {
+  display: flex;
+  width: max-content;
+  animation: tickerScroll 48s linear infinite;
+}
+
+.ticker-marquee:hover {
+  animation-play-state: paused;
 }

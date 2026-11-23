@@ -1,21 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { Pause, Play, Radio, X } from 'lucide-react';
 import { synthAudio } from './audio/synthEngine';
-import { ArtistAvatar } from './components/ArtistAvatar';
-import { BottomDock } from './components/BottomDock';
-import { SmartphoneOS } from './components/phone/SmartphoneOS';
-import { HomeTab } from './components/tabs/HomeTab';
-import { LoveTab } from './components/tabs/LoveTab';
-import { MusicTab } from './components/tabs/MusicTab';
-import { PhoneHubTab } from './components/tabs/PhoneHubTab';
-import { SettingsTab } from './components/tabs/SettingsTab';
-import { StudioTab } from './components/tabs/StudioTab';
-import { WorldTab } from './components/tabs/WorldTab';
+import { BottomNewsTicker } from './components/BottomNewsTicker';
+import { PhoneOverlay } from './components/phone/PhoneOverlay';
+import { AdvanceTimeHub } from './components/tabs/AdvanceTimeHub';
+import { ArtistBrandTab } from './components/tabs/ArtistBrandTab';
+import { ChartsDataTab } from './components/tabs/ChartsDataTab';
+import { LabelOfficeTab } from './components/tabs/LabelOfficeTab';
+import { StudioReleasesTab } from './components/tabs/StudioReleasesTab';
+import { SystemTab } from './components/tabs/SystemTab';
+import { TrophyRoomTab } from './components/tabs/TrophyRoomTab';
 import { TitleAndCreator } from './components/TitleAndCreator';
 import { TopHud } from './components/TopHud';
 import {
   COVER_ARTS,
-  RECORD_LABELS,
+  DIFFICULTY_CONFIGS,
+  INITIAL_NPCS,
   STUDIO_LEVELS,
   createBiigMtPresetState,
   createRookieCareerState,
@@ -23,19 +22,27 @@ import {
 import {
   advanceGameTime,
   computeNetWorth,
+  computeReputation,
+  evaluateAchievements,
+  evaluatePlaquesAndCertifications,
   formatCompactNumber,
   formatDateDot,
   formatMoney,
+  getAchievementPerks,
 } from './engine/simulation';
 import {
   Album,
   AvatarConfig,
   CatalogItem,
+  CustomCoverConfig,
+  DifficultyMode,
   EmailMessage,
   GameState,
   MainTab,
+  MerchItem,
   MusicGenre,
   PhoneAppId,
+  RecordLabel,
   SocialPost,
   Song,
   SongMood,
@@ -43,23 +50,130 @@ import {
 
 const AUTOSAVE_KEY = 'rockstar_autosave_v1';
 
+const PRODUCER_BONUS_MAP: Record<string, { bonus: number; fee: number }> = {
+  'Self-Produced': { bonus: 0, fee: 0 },
+  'Metro Ghost': { bonus: 4, fee: 8500 },
+  'London On Da Track': { bonus: 6, fee: 18000 },
+  'Pharrell Apex': { bonus: 9, fee: 45000 },
+};
+
+const MERCH_COST_MAP: Record<MerchItem['type'], number> = {
+  Hoodie: 28,
+  'Tour Tee': 14,
+  'Vinyl LP': 18,
+  Cap: 10,
+  'Collector Box': 35,
+};
+
+function hydrateLoadedState(raw: GameState): GameState {
+  const existingNpcIds = new Set((raw.npcs || []).map((n) => n.id));
+  const mergedNpcs = [
+    ...(raw.npcs || []),
+    ...INITIAL_NPCS.filter((n) => !existingNpcIds.has(n.id)),
+  ];
+
+  const unlockedAchievements = raw.unlockedAchievements || [];
+  const perks = getAchievementPerks(unlockedAchievements);
+  const maxEnergy = 100 + perks.maxEnergyBonus;
+
+  return {
+    ...raw,
+    difficulty: raw.difficulty || 'Realistic',
+    hype: raw.hype ?? 50,
+    reputation:
+      raw.reputation ||
+      computeReputation(raw.fameLevel || 1, raw.popularity || 10, raw.careerStats?.grammyAwards || 0),
+    maxEnergy,
+    energy: Math.min(maxEnergy, raw.energy ?? 100),
+    skills: raw.skills || {
+      songwriting: 40,
+      vocals: 40,
+      production: 40,
+      stagePresence: 40,
+      marketing: 40,
+    },
+    merchStoreLevel: raw.merchStoreLevel || 1,
+    merchItems: raw.merchItems || [],
+    awardsHistory: raw.awardsHistory || [],
+    plaques: raw.plaques || [],
+    unlockedAchievements,
+    playerLabel: raw.playerLabel ?? null,
+    npcs: mergedNpcs,
+    lastAwardYearProcessed: raw.lastAwardYearProcessed ?? (raw.date?.year || 2026) - 1,
+    careerStats: {
+      totalStreams: raw.careerStats?.totalStreams || 0,
+      hot100Entries: raw.careerStats?.hot100Entries || 0,
+      numberOneHits: raw.careerStats?.numberOneHits || 0,
+      grammyAwards: raw.careerStats?.grammyAwards || 0,
+      toursCompleted: raw.careerStats?.toursCompleted || 0,
+      songsReleased: raw.careerStats?.songsReleased || 0,
+      videosShot: raw.careerStats?.videosShot || 0,
+      highestWeeklyStreams: raw.careerStats?.highestWeeklyStreams || 0,
+      soldOutArenas: raw.careerStats?.soldOutArenas || 0,
+    },
+  };
+}
+
+function finalizeState(candidate: GameState): GameState {
+  const dateStr = formatDateDot(candidate.date);
+  const plaqueEval = evaluatePlaquesAndCertifications(
+    candidate.songs,
+    candidate.albums,
+    candidate.plaques || [],
+    dateStr
+  );
+
+  const plaqueNotifs = plaqueEval.newlyAwarded.map((plq) => ({
+    id: `notif_plq_${plq.id}`,
+    title: `RIAA ${plq.tier} Plaque Awarded!`,
+    detail: `"${plq.title}" (${plq.type}) certified ${plq.tier} (${formatCompactNumber(plq.units)} units).`,
+    deltaText: plq.tier.toUpperCase(),
+    dateStr,
+    unread: true,
+  }));
+
+  const withPlaques: GameState = {
+    ...candidate,
+    plaques: plaqueEval.plaques,
+    reputation: computeReputation(
+      candidate.fameLevel,
+      candidate.popularity,
+      candidate.careerStats.grammyAwards
+    ),
+    notifications: [...plaqueNotifs, ...candidate.notifications].slice(0, 35),
+  };
+
+  withPlaques.netWorth = computeNetWorth(withPlaques);
+
+  const achEval = evaluateAchievements(withPlaques, dateStr);
+  const nextPerks = getAchievementPerks(achEval.unlockedAchievements);
+  const nextMaxEnergy = 100 + nextPerks.maxEnergyBonus;
+
+  return {
+    ...withPlaques,
+    unlockedAchievements: achEval.unlockedAchievements,
+    maxEnergy: nextMaxEnergy,
+    energy: Math.min(nextMaxEnergy, withPlaques.energy),
+    notifications: [...achEval.notifications, ...withPlaques.notifications].slice(0, 35),
+  };
+}
+
 export default function App() {
   const [savedState, setSavedState] = useState<GameState | null>(() => {
     try {
       const raw = localStorage.getItem(AUTOSAVE_KEY);
-      return raw ? (JSON.parse(raw) as GameState) : null;
+      return raw ? hydrateLoadedState(JSON.parse(raw) as GameState) : null;
     } catch {
       return null;
     }
   });
 
   const [state, setState] = useState<GameState | null>(null);
-  const [activeTab, setActiveTab] = useState<MainTab>('home');
-  const [mobilePhoneOpen, setMobilePhoneOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<MainTab>('advance');
+  const [phoneOverlayOpen, setPhoneOverlayOpen] = useState(false);
   const [activePhoneApp, setActivePhoneApp] = useState<PhoneAppId>('home');
-  const [avatarModalOpen, setAvatarModalOpen] = useState(false);
+  const [headlineIdx, setHeadlineIdx] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
-  const [beatStep, setBeatStep] = useState(0);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -67,7 +181,7 @@ export default function App() {
 
   useEffect(() => {
     if (!toast) return;
-    const t = window.setTimeout(() => setToast(null), 2600);
+    const t = window.setTimeout(() => setToast(null), 2800);
     return () => window.clearTimeout(t);
   }, [toast]);
 
@@ -87,8 +201,23 @@ export default function App() {
     return () => synthAudio.stopSong();
   }, []);
 
+  // Keyboard shortcuts: R cycles press headline, Escape closes phone overlay
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === 'Escape' && phoneOverlayOpen) {
+        setPhoneOverlayOpen(false);
+      } else if ((e.key === 'r' || e.key === 'R') && state?.phase === 'PLAYING') {
+        setHeadlineIdx((i) => i + 1);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [phoneOverlayOpen, state?.phase]);
+
   const updateState = (updater: (prev: GameState) => GameState) => {
-    setState((prev) => (prev ? updater(prev) : prev));
+    setState((prev) => (prev ? finalizeState(updater(prev)) : prev));
   };
 
   const handleToggleMute = () => {
@@ -109,7 +238,7 @@ export default function App() {
 
     if (state.nowPlayingSongId === songId && state.isAudioPlaying) {
       synthAudio.stopSong();
-      updateState((prev) => ({ ...prev, isAudioPlaying: false }));
+      setState((prev) => (prev ? { ...prev, isAudioPlaying: false } : prev));
       return;
     }
 
@@ -117,22 +246,28 @@ export default function App() {
       synthAudio.setMuted(false);
     }
 
-    synthAudio.startSong(
-      { bpm: song.bpm, genre: song.genre, mood: song.mood, seed: song.seed },
-      (step) => setBeatStep(step % 16)
-    );
+    synthAudio.startSong({
+      bpm: song.bpm,
+      genre: song.genre,
+      mood: song.mood,
+      seed: song.seed,
+    });
 
-    updateState((prev) => ({
-      ...prev,
-      muted: false,
-      nowPlayingSongId: songId,
-      isAudioPlaying: true,
-    }));
+    setState((prev) =>
+      prev
+        ? {
+            ...prev,
+            muted: false,
+            nowPlayingSongId: songId,
+            isAudioPlaying: true,
+          }
+        : prev
+    );
   };
 
   const handleAdvanceTime = (step: 'day' | 'week' | 'month') => {
     synthAudio.playSfx('advance');
-    updateState((prev) => advanceGameTime(prev, step));
+    setState((prev) => (prev ? advanceGameTime(prev, step) : prev));
   };
 
   const handleQuickAction = (action: string, payload?: Record<string, string | number>) => {
@@ -145,16 +280,13 @@ export default function App() {
         const title = String(payload?.title || 'Live Gig');
         if (state.energy < energyCost) return;
         synthAudio.playSfx('cash');
-        updateState((prev) => {
-          const next = {
-            ...prev,
-            cash: prev.cash + reward,
-            energy: prev.energy - energyCost,
-            popularity: Math.min(150, +(prev.popularity + 0.8).toFixed(1)),
-          };
-          next.netWorth = computeNetWorth(next);
-          return next;
-        });
+        updateState((prev) => ({
+          ...prev,
+          cash: prev.cash + reward,
+          energy: prev.energy - energyCost,
+          hype: Math.min(100, prev.hype + 4),
+          popularity: Math.min(150, +(prev.popularity + 0.8).toFixed(1)),
+        }));
         showToast(`${title}: +${formatMoney(reward)}`);
         break;
       }
@@ -164,16 +296,13 @@ export default function App() {
         const payout = Number(payload?.payout || 5000);
         if (state.energy < 4) return;
         synthAudio.playSfx('record');
-        updateState((prev) => {
-          const next = {
-            ...prev,
-            cash: prev.cash + payout,
-            energy: prev.energy - 4,
-            popularity: Math.min(150, +(prev.popularity + 1.2).toFixed(1)),
-          };
-          next.netWorth = computeNetWorth(next);
-          return next;
-        });
+        updateState((prev) => ({
+          ...prev,
+          cash: prev.cash + payout,
+          energy: prev.energy - 4,
+          hype: Math.min(100, prev.hype + 5),
+          popularity: Math.min(150, +(prev.popularity + 1.2).toFixed(1)),
+        }));
         showToast(`Recorded guest verse for ${npcName} (+${formatMoney(payout)})`);
         break;
       }
@@ -192,15 +321,13 @@ export default function App() {
               : delivered >= 3
               ? 'Beatmaker'
               : 'Bedroom Producer';
-          const next = {
+          return {
             ...prev,
             cash: prev.cash + pay,
             energy: prev.energy - 5,
             producerDelivered: delivered,
             producerRank: rank,
           };
-          next.netWorth = computeNetWorth(next);
-          return next;
         });
         showToast(`Delivered studio beat (+${formatMoney(pay)})`);
         break;
@@ -213,16 +340,15 @@ export default function App() {
         updateState((prev) => {
           const credits = prev.actorCredits + 1;
           const rank = credits >= 12 ? 'Lead' : credits >= 4 ? 'Supporting' : 'Extra';
-          const next = {
+          return {
             ...prev,
             cash: prev.cash + pay,
             energy: prev.energy - 6,
             actorCredits: credits,
             actorRank: rank,
+            hype: Math.min(100, prev.hype + 6),
             popularity: Math.min(150, +(prev.popularity + 1.5).toFixed(1)),
           };
-          next.netWorth = computeNetWorth(next);
-          return next;
         });
         showToast(`Filmed role (+${formatMoney(pay)})`);
         break;
@@ -246,8 +372,46 @@ export default function App() {
           cash: prev.cash - 500,
           energy: prev.energy - 4,
           popularity: Math.min(150, +(prev.popularity + 1.4).toFixed(1)),
+          skills: {
+            ...prev.skills,
+            vocals: Math.min(100, prev.skills.vocals + 4),
+            songwriting: Math.min(100, prev.skills.songwriting + 3),
+          },
         }));
-        showToast('Vocal session complete (+1.4 Popularity)');
+        showToast('Vocal session complete (+4 Vocals, +3 Songwriting)');
+        break;
+      }
+
+      case 'train_production': {
+        if (state.energy < 4 || state.cash < 800) return;
+        synthAudio.playSfx('record');
+        updateState((prev) => ({
+          ...prev,
+          cash: prev.cash - 800,
+          energy: prev.energy - 4,
+          skills: {
+            ...prev.skills,
+            production: Math.min(100, prev.skills.production + 5),
+            songwriting: Math.min(100, prev.skills.songwriting + 3),
+          },
+        }));
+        showToast('Mixing workshop complete (+5 Production, +3 Songwriting)');
+        break;
+      }
+
+      case 'stage_rehearsal': {
+        if (state.energy < 4 || state.cash < 650) return;
+        synthAudio.playSfx('tap');
+        updateState((prev) => ({
+          ...prev,
+          cash: prev.cash - 650,
+          energy: prev.energy - 4,
+          skills: {
+            ...prev.skills,
+            stagePresence: Math.min(100, prev.skills.stagePresence + 6),
+          },
+        }));
+        showToast('Arena rehearsal complete (+6 Stage Presence)');
         break;
       }
 
@@ -257,7 +421,12 @@ export default function App() {
         updateState((prev) => ({
           ...prev,
           energy: prev.energy - 6,
+          hype: Math.min(100, prev.hype + 12),
           popularity: Math.min(150, +(prev.popularity + 2.8).toFixed(1)),
+          skills: {
+            ...prev.skills,
+            marketing: Math.min(100, prev.skills.marketing + 5),
+          },
           socialFollowers: {
             ...prev.socialFollowers,
             youtube: prev.socialFollowers.youtube + 5500,
@@ -265,7 +434,7 @@ export default function App() {
             x: prev.socialFollowers.x + 4200,
           },
         }));
-        showToast('Radio interview aired! +19K new followers');
+        showToast('Press & radio tour aired! +12% Hype & +19K followers');
         break;
       }
 
@@ -278,12 +447,14 @@ export default function App() {
           energy: Math.min(prev.maxEnergy, prev.energy + 6),
           heatLevel: Math.max(0, prev.heatLevel - 8),
         }));
-        showToast('Workout complete (+6 ⚡)');
+        showToast('Gym & Spa session complete (+6 ⚡, -8% Heat)');
         break;
       }
 
       case 'befriend_npc': {
         const npcId = String(payload?.npcId || '');
+        const npc = state.npcs.find((n) => n.id === npcId);
+        if (!npc) break;
         synthAudio.playSfx('tap');
         updateState((prev) => ({
           ...prev,
@@ -291,14 +462,56 @@ export default function App() {
             n.id === npcId
               ? {
                   ...n,
-                  relationshipScore: Math.min(100, n.relationshipScore + 20),
-                  relationship:
-                    n.relationshipScore + 20 >= 50 ? 'friend' : n.relationship,
+                  relationshipScore: Math.min(100, n.relationshipScore + 25),
+                  relationship: n.relationshipScore + 25 >= 45 ? 'friend' : 'neutral',
                 }
               : n
           ),
         }));
-        showToast('Built industry rapport with artist!');
+        showToast(`Built alliance with ${npc.name}!`);
+        break;
+      }
+
+      case 'start_beef': {
+        const npcId = String(payload?.npcId || '');
+        const npc = state.npcs.find((n) => n.id === npcId);
+        if (!npc) break;
+        synthAudio.playSfx('notification');
+        updateState((prev) => ({
+          ...prev,
+          hype: Math.min(100, prev.hype + 10),
+          popularity: Math.min(150, +(prev.popularity + 1.8).toFixed(1)),
+          npcs: prev.npcs.map((n) =>
+            n.id === npcId
+              ? {
+                  ...n,
+                  relationship: 'beef',
+                  relationshipScore: Math.max(-100, n.relationshipScore - 45),
+                }
+              : n
+          ),
+          posts: [
+            {
+              id: `post_beef_${Date.now()}`,
+              platform: 'x',
+              authorName: prev.artistName,
+              authorHandle: prev.handle,
+              authorInitials: prev.artistName.slice(0, 2).toUpperCase(),
+              authorColor: '#f43f5e',
+              isVerified: prev.fameLevel >= 3,
+              content: `${npc.handle} keep talking in interviews... step in the booth and let's settle it.`,
+              likes: 4200 + prev.fameLevel * 1900,
+              comments: 620,
+              shares: 1100,
+              timeAgo: 'Just now',
+              commentsList: [
+                { id: `cb_${Date.now()}`, author: npc.name, text: 'Careful what you wish for.' },
+              ],
+            },
+            ...prev.posts,
+          ],
+        }));
+        showToast(`Public beef ignited with ${npc.name}! (+10% Hype)`);
         break;
       }
 
@@ -338,7 +551,7 @@ export default function App() {
           cash: prev.cash - 2500,
           heatLevel: 0,
         }));
-        showToast('Legal team cleared your heat.');
+        showToast('Fixer cleared your street heat.');
         break;
       }
     }
@@ -350,24 +563,62 @@ export default function App() {
     mood: SongMood;
     bpm: number;
     coverUrl: string;
+    customCover?: CustomCoverConfig;
     featuredArtistId?: string;
+    dissTargetId?: string;
+    producerName?: string;
+    marketingBudget?: number;
     releaseImmediately: boolean;
   }) => {
     if (!state || state.energy < 5) return;
+
+    const perks = getAchievementPerks(state.unlockedAchievements || []);
+    const diffCfg = DIFFICULTY_CONFIGS[state.difficulty || 'Realistic'];
+    const feeScale = Math.max(0.55, diffCfg.feeMult * (1 - perks.feeDiscount));
+
     const featNpc = state.npcs.find((n) => n.id === payload.featuredArtistId);
+    const dissNpc =
+      payload.mood === 'Diss' ? state.npcs.find((n) => n.id === payload.dissTargetId) : undefined;
+
     const featCost = featNpc
-      ? featNpc.relationship === 'friend'
-        ? Math.round(featNpc.featFee * 0.4)
-        : featNpc.featFee
+      ? Math.round((featNpc.relationship === 'friend' ? featNpc.featFee * 0.4 : featNpc.featFee) * feeScale)
       : 0;
+    const prodSpec = PRODUCER_BONUS_MAP[payload.producerName || 'Self-Produced'] || {
+      bonus: 0,
+      fee: 0,
+    };
+    const prodCost = Math.round(prodSpec.fee * feeScale);
+    const marketingBudget = payload.marketingBudget || 0;
+    const totalCost = featCost + prodCost + marketingBudget;
 
-    if (state.cash < featCost) return;
+    if (state.cash < totalCost) return;
 
-    const baseQuality = 48 + state.studio.rating * 3.8 + Math.min(12, state.fameLevel * 1.1);
-    const quality = Math.min(99, Math.max(35, Math.round(baseQuality + (Math.random() * 14 - 5))));
+    const skillBonus =
+      state.skills.songwriting * 0.14 +
+      state.skills.production * 0.12 +
+      state.skills.vocals * 0.1 +
+      state.skills.stagePresence * 0.04;
+    const baseQuality =
+      40 +
+      state.studio.rating * 3.1 +
+      skillBonus * 0.65 +
+      prodSpec.bonus +
+      Math.min(10, state.fameLevel * 0.9);
+    const quality = Math.min(99, Math.max(35, Math.round(baseQuality + (Math.random() * 11 - 4))));
+
+    const dissBuzzMult = dissNpc ? 1.48 : 1.0;
+    const marketingMult =
+      marketingBudget > 0 ? 1 + Math.min(0.9, Math.log10(marketingBudget + 10) * 0.16) : 1.0;
 
     const initialStreams = payload.releaseImmediately
-      ? Math.round((1800 + state.fameLevel * 14000 + state.popularity * 1200) * (quality / 65))
+      ? Math.round(
+          (2800 + state.fameLevel * 15000 + state.popularity * 1300) *
+            (quality / 65) *
+            dissBuzzMult *
+            marketingMult *
+            diffCfg.streamMult *
+            perks.streamMult
+        )
       : 0;
 
     const newSong: Song = {
@@ -377,10 +628,14 @@ export default function App() {
       mood: payload.mood,
       bpm: payload.bpm,
       coverUrl: payload.coverUrl,
+      customCover: payload.customCover,
       quality,
       featuredArtistId: featNpc?.id,
       featuredArtistName: featNpc?.name,
-      producerName: state.artistName,
+      dissTargetId: dissNpc?.id,
+      dissTargetName: dissNpc?.name,
+      producerName: payload.producerName || state.artistName,
+      marketingBudget,
       released: payload.releaseImmediately,
       releaseDate: payload.releaseImmediately ? { ...state.date } : undefined,
       releaseYear: payload.releaseImmediately ? state.date.year : undefined,
@@ -391,9 +646,13 @@ export default function App() {
       peakChartPos: null,
       currentChartPos: null,
       weeksOnChart: 0,
-      viralScore: payload.releaseImmediately ? Math.min(60, Math.round(quality * 0.45)) : 0,
-      playlistReach: payload.releaseImmediately ? 20 : 0,
-      radioPush: 0,
+      viralScore: payload.releaseImmediately
+        ? Math.min(95, Math.round(quality * 0.45 * perks.viralMult + (dissNpc ? 28 : 0)))
+        : 0,
+      playlistReach: payload.releaseImmediately
+        ? Math.min(95, 20 + (marketingBudget >= 5000 ? 25 : 0) + (marketingBudget >= 75000 ? 25 : 0))
+        : 0,
+      radioPush: marketingBudget >= 75000 ? 45 : 0,
       hasVideo: false,
       videoViews: 0,
       seed: Math.floor(Math.random() * 200) + 1,
@@ -414,25 +673,57 @@ export default function App() {
               isVerified: true,
               isNews: true,
               linkDomain: 'ROLLINGROCK.COM',
-              headline: `${prev.artistName} (${payload.genre}) releases "${payload.title}"${featNpc ? ` featuring ${featNpc.name}` : ''}.`,
-              content: `${prev.artistName} (${payload.genre}) drops new single "${payload.title}"${featNpc ? ` ft. ${featNpc.name}` : ''}.`,
-              likes: 120 + prev.fameLevel * 420,
-              comments: 24 + prev.fameLevel * 35,
-              shares: 38 + prev.fameLevel * 60,
+              headline: dissNpc
+                ? `${prev.artistName} fires shots at ${dissNpc.name} on explosive diss track "${payload.title}"!`
+                : `${prev.artistName} (${payload.genre}) releases "${payload.title}"${
+                    featNpc ? ` featuring ${featNpc.name}` : ''
+                  }.`,
+              content: dissNpc
+                ? `Chirper timelines are erupting after ${prev.artistName} aimed directly at ${dissNpc.name} on "${payload.title}". Both artists see massive stream spikes!`
+                : `${prev.artistName} (${payload.genre}) drops new single "${payload.title}"${
+                    featNpc ? ` ft. ${featNpc.name}` : ''
+                  }.`,
+              likes: 120 + prev.fameLevel * 420 + (dissNpc ? 4500 : 0),
+              comments: 24 + prev.fameLevel * 35 + (dissNpc ? 820 : 0),
+              shares: 38 + prev.fameLevel * 60 + (dissNpc ? 940 : 0),
               timeAgo: 'Just now',
               commentsList: [],
             },
           ]
         : [];
 
-      const next: GameState = {
+      const nextNpcs =
+        dissNpc && payload.releaseImmediately
+          ? prev.npcs.map((n) =>
+              n.id === dissNpc.id
+                ? {
+                    ...n,
+                    relationship: 'beef' as const,
+                    relationshipScore: Math.max(-100, n.relationshipScore - 50),
+                    clout: Math.min(100, n.clout + 6),
+                    monthlyListeners: Math.round(n.monthlyListeners * 1.08),
+                  }
+                : n
+            )
+          : prev.npcs;
+
+      return {
         ...prev,
-        cash: prev.cash - featCost,
+        cash: prev.cash - totalCost,
         energy: prev.energy - 5,
+        hype: payload.releaseImmediately
+          ? Math.min(100, prev.hype + (dissNpc ? 16 : 8) + (marketingBudget > 0 ? 10 : 0))
+          : prev.hype,
         songs: [...prev.songs, newSong],
+        npcs: nextNpcs,
         posts: [...newsPost, ...prev.posts],
+        skills: {
+          ...prev.skills,
+          songwriting: Math.min(100, prev.skills.songwriting + 1),
+          production: Math.min(100, prev.skills.production + 1),
+        },
         popularity: payload.releaseImmediately
-          ? Math.min(150, +(prev.popularity + 2.2).toFixed(1))
+          ? Math.min(150, +(prev.popularity + (dissNpc ? 4.2 : 2.2)).toFixed(1))
           : prev.popularity,
         careerStats: {
           ...prev.careerStats,
@@ -440,22 +731,33 @@ export default function App() {
           totalStreams: prev.careerStats.totalStreams + initialStreams,
         },
       };
-      next.netWorth = computeNetWorth(next);
-      return next;
     });
 
     showToast(
       payload.releaseImmediately
-        ? `Dropped "${payload.title}" (Quality ${quality})!`
+        ? dissNpc
+          ? `Dropped diss "${payload.title}" targeting ${dissNpc.name}!`
+          : `Dropped "${payload.title}" (Quality ${quality})!`
         : `Saved "${payload.title}" (Quality ${quality}) to Vault.`
     );
   };
 
   const handleReleaseSong = (songId: string) => {
     if (!state) return;
+    const song = state.songs.find((s) => s.id === songId);
+    if (!song || song.released) return;
+
+    const perks = getAchievementPerks(state.unlockedAchievements || []);
+    const diffCfg = DIFFICULTY_CONFIGS[state.difficulty || 'Realistic'];
+    const debutStreams = Math.round(
+      (5000 + state.fameLevel * 13500) * (song.quality / 65) * diffCfg.streamMult * perks.streamMult
+    );
+
     synthAudio.playSfx('chart_hit');
     updateState((prev) => ({
       ...prev,
+      hype: Math.min(100, prev.hype + 7),
+      popularity: Math.min(150, +(prev.popularity + 1.8).toFixed(1)),
       songs: prev.songs.map((s) =>
         s.id === songId
           ? {
@@ -463,23 +765,28 @@ export default function App() {
               released: true,
               releaseDate: { ...prev.date },
               releaseYear: prev.date.year,
-              weeklyStreams: Math.round(4500 + prev.fameLevel * 12000),
-              totalStreams: Math.round(4500 + prev.fameLevel * 12000),
+              weeklyStreams: debutStreams,
+              totalStreams: debutStreams,
+              dailyStreams: Math.round(debutStreams / 3),
+              viralScore: Math.min(90, Math.round(s.quality * 0.45)),
+              playlistReach: 20,
             }
           : s
       ),
       careerStats: {
         ...prev.careerStats,
         songsReleased: prev.careerStats.songsReleased + 1,
+        totalStreams: prev.careerStats.totalStreams + debutStreams,
       },
     }));
-    showToast('Single released to Soundify & Pear Music!');
+    showToast(`"${song.title}" released globally!`);
   };
 
   const handleReleaseAlbum = (payload: {
     title: string;
     type: 'ALBUM' | 'EP' | 'MIXTAPE' | 'COLLAB';
     coverUrl: string;
+    customCover?: CustomCoverConfig;
     songIds: string[];
     collabArtistId?: string;
   }) => {
@@ -497,7 +804,8 @@ export default function App() {
             releaseDate: s.releaseDate || { ...state.date },
             releaseYear: s.releaseYear || state.date.year,
             albumId,
-            weeklyStreams: Math.max(s.weeklyStreams, 8500 + state.fameLevel * 18000),
+            weeklyStreams: Math.max(s.weeklyStreams, 9500 + state.fameLevel * 18500),
+            totalStreams: Math.max(s.totalStreams, 9500 + state.fameLevel * 18500),
           }
         : s
     );
@@ -511,6 +819,7 @@ export default function App() {
       title: payload.title,
       type: payload.type,
       coverUrl: payload.coverUrl,
+      customCover: payload.customCover,
       songIds: payload.songIds,
       collabArtistId: collab?.id,
       collabArtistName: collab?.name,
@@ -519,7 +828,7 @@ export default function App() {
       releaseYear: state.date.year,
       totalStreams,
       weeklyStreams,
-      firstWeekUnits: Math.round(weeklyStreams / 1500),
+      firstWeekUnits: Math.max(500, Math.round(weeklyStreams / 1200)),
       peakChartPos: null,
       currentChartPos: null,
       weeksOnChart: 1,
@@ -530,6 +839,7 @@ export default function App() {
     updateState((prev) => ({
       ...prev,
       cash: prev.cash - cost,
+      hype: Math.min(100, prev.hype + 16),
       songs: updatedSongs,
       albums: [...prev.albums, newAlbum],
       popularity: Math.min(150, +(prev.popularity + 5.5).toFixed(1)),
@@ -539,6 +849,27 @@ export default function App() {
             albumsDelivered: prev.contract.albumsDelivered + 1,
           }
         : null,
+      posts: [
+        {
+          id: `post_alb_${Date.now()}`,
+          platform: 'fakebook',
+          authorName: 'Music Daily',
+          authorHandle: '@musicdaily',
+          authorInitials: 'MD',
+          authorColor: '#9333ea',
+          isVerified: true,
+          isNews: true,
+          linkDomain: 'BILLBOARD.COM',
+          headline: `${prev.artistName} drops ${payload.type} "${payload.title}" (${payload.songIds.length} tracks)!`,
+          content: `Projected ${formatCompactNumber(newAlbum.firstWeekUnits)} first-week equivalent units on the Hot 200.`,
+          likes: 2800 + prev.fameLevel * 1500,
+          comments: 310,
+          shares: 640,
+          timeAgo: 'Just now',
+          commentsList: [],
+        },
+        ...prev.posts,
+      ],
     }));
 
     showToast(`Released ${payload.type}: "${payload.title}"!`);
@@ -568,13 +899,14 @@ export default function App() {
       ...prev,
       cash: prev.cash - payload.cost,
       energy: prev.energy - 4,
+      hype: Math.min(100, prev.hype + 10),
       popularity: Math.min(150, +(prev.popularity + 3.2).toFixed(1)),
       songs: prev.songs.map((s) =>
         s.id === payload.songId
           ? {
               ...s,
               hasVideo: true,
-              videoViews: viewsGain,
+              videoViews: s.videoViews + viewsGain,
               videoTitle: `${s.title} (Official Video)`,
               videoBudgetTier: payload.tier,
               viralScore: Math.min(100, s.viralScore + 25),
@@ -591,7 +923,7 @@ export default function App() {
           authorColor: '#ef4444',
           isVerified: true,
           headline: `${prev.artistName} - ${song.title} (Official ${payload.tier} Video)`,
-          content: `Official video out now!`,
+          content: `Official music video out now!`,
           imageUrl: song.coverUrl,
           songId: song.id,
           likes: Math.round(viewsGain * 0.08),
@@ -615,14 +947,22 @@ export default function App() {
   const handleUpgradeStudio = () => {
     if (!state) return;
     const next = STUDIO_LEVELS.find((l) => l.level === state.studio.level + 1);
-    if (!next || state.cash < state.studio.upgradeCost) return;
+    if (!next) return;
+    const perks = getAchievementPerks(state.unlockedAchievements || []);
+    const feeScale = Math.max(
+      0.55,
+      DIFFICULTY_CONFIGS[state.difficulty || 'Realistic'].feeMult * (1 - perks.feeDiscount)
+    );
+    const cost = Math.round(state.studio.upgradeCost * feeScale);
+    if (state.cash < cost) return;
+
     synthAudio.playSfx('cash');
     updateState((prev) => ({
       ...prev,
-      cash: prev.cash - prev.studio.upgradeCost,
+      cash: prev.cash - cost,
       studio: { ...next },
     }));
-    showToast(`Upgraded studio to ${next.name} (${next.rating})!`);
+    showToast(`Upgraded studio to ${next.name} (${next.rating}/10)!`);
   };
 
   const handlePromoteSong = (
@@ -635,6 +975,7 @@ export default function App() {
     updateState((prev) => ({
       ...prev,
       cash: prev.cash - cost,
+      hype: Math.min(100, prev.hype + 6),
       songs: prev.songs.map((s) =>
         s.id === songId
           ? {
@@ -642,75 +983,230 @@ export default function App() {
               playlistReach: channel === 'playlist' ? Math.min(100, s.playlistReach + 22) : s.playlistReach,
               radioPush: channel === 'radio' ? Math.min(100, s.radioPush + 25) : s.radioPush,
               viralScore: channel === 'viral' ? Math.min(100, s.viralScore + 30) : s.viralScore,
-              weeklyStreams: Math.round(s.weeklyStreams * 1.25 + 35000),
+              weeklyStreams: Math.round(s.weeklyStreams * 1.25 + 38000),
             }
           : s
       ),
     }));
-    showToast(`Launched ${channel} campaign!`);
+    showToast(`Launched ${channel} promo push!`);
   };
 
   const handleBuyCatalogItem = (item: CatalogItem) => {
     if (!state || state.cash < item.price) return;
     synthAudio.playSfx('cash');
-    updateState((prev) => {
-      const next: GameState = {
-        ...prev,
-        cash: prev.cash - item.price,
-        statusPoints: prev.statusPoints + item.statusGain,
-        ownedVehicles:
-          item.category === 'vehicle' ? [...prev.ownedVehicles, item.id] : prev.ownedVehicles,
-        ownedRealEstate:
-          item.category === 'realestate' ? [...prev.ownedRealEstate, item.id] : prev.ownedRealEstate,
-        ownedClothes:
-          item.category === 'clothes' ? [...prev.ownedClothes, item.id] : prev.ownedClothes,
-        ownedJewelry:
-          item.category === 'jewelry' ? [...prev.ownedJewelry, item.id] : prev.ownedJewelry,
-        ownedFactories:
-          item.category === 'factory' ? [...prev.ownedFactories, item.id] : prev.ownedFactories,
-        avatar:
-          item.category === 'clothes'
-            ? { ...prev.avatar, outfitId: item.id }
-            : item.category === 'jewelry'
-            ? { ...prev.avatar, jewelryIds: [...prev.avatar.jewelryIds, item.id] }
-            : prev.avatar,
-      };
-      next.netWorth = computeNetWorth(next);
-      return next;
-    });
+    updateState((prev) => ({
+      ...prev,
+      cash: prev.cash - item.price,
+      statusPoints: prev.statusPoints + item.statusGain,
+      hype: Math.min(100, prev.hype + (item.hypeBonus || 0)),
+      ownedVehicles:
+        item.category === 'vehicle' ? [...prev.ownedVehicles, item.id] : prev.ownedVehicles,
+      ownedRealEstate:
+        item.category === 'realestate' ? [...prev.ownedRealEstate, item.id] : prev.ownedRealEstate,
+      ownedClothes:
+        item.category === 'clothes' ? [...prev.ownedClothes, item.id] : prev.ownedClothes,
+      ownedJewelry:
+        item.category === 'jewelry' ? [...prev.ownedJewelry, item.id] : prev.ownedJewelry,
+      ownedFactories:
+        item.category === 'factory' ? [...prev.ownedFactories, item.id] : prev.ownedFactories,
+      avatar:
+        item.category === 'clothes'
+          ? { ...prev.avatar, outfitId: item.id }
+          : item.category === 'jewelry'
+          ? { ...prev.avatar, jewelryIds: [...prev.avatar.jewelryIds, item.id] }
+          : prev.avatar,
+    }));
     showToast(`Purchased ${item.name}!`);
   };
 
-  const handleSignLabel = (labelId: string) => {
+  const handleNegotiateLabel = (
+    label: RecordLabel,
+    requestedRoyalty: number,
+    requestedAdvance: number
+  ) => {
     if (!state) return;
-    const label = RECORD_LABELS.find((l) => l.id === labelId);
-    if (!label) return;
-    synthAudio.playSfx('chart_hit');
+    const maxAcceptableRoyalty = label.royaltyPercent + state.fameLevel * 1.4 + 4;
+    const maxAcceptableAdvance = label.advance * (1 + state.fameLevel * 0.04 + 0.15);
 
-    if (label.id === 'independent') {
-      updateState((prev) => ({ ...prev, contract: null }));
-      showToast('Returned to Independent status (100% royalties).');
+    if (requestedRoyalty > maxAcceptableRoyalty || requestedAdvance > maxAcceptableAdvance) {
+      synthAudio.playSfx('tap');
+      showToast(
+        `${label.name} rejected terms — try <= ${Math.round(maxAcceptableRoyalty)}% split or <= ${formatMoney(
+          maxAcceptableAdvance
+        )}.`
+      );
       return;
     }
 
-    updateState((prev) => {
-      const next: GameState = {
-        ...prev,
-        cash: prev.cash + label.advance,
-        contract: {
-          labelId: label.id,
-          labelName: label.name,
-          royaltyPercent: label.royaltyPercent,
-          albumsRequired: label.albumsRequired,
-          albumsDelivered: 0,
-          promoBonus: label.promoBonus,
-          advancePaid: label.advance,
-        },
-      };
-      next.netWorth = computeNetWorth(next);
-      return next;
-    });
-    showToast(`Signed with ${label.name} (+${formatMoney(label.advance)} advance)!`);
+    synthAudio.playSfx('chart_hit');
+    updateState((prev) => ({
+      ...prev,
+      cash: prev.cash + requestedAdvance,
+      hype: Math.min(100, prev.hype + 12),
+      contract: {
+        labelId: label.id,
+        labelName: label.name,
+        royaltyPercent: requestedRoyalty,
+        albumsRequired: label.albumsRequired,
+        albumsDelivered: 0,
+        promoBonus: label.promoBonus,
+        advancePaid: requestedAdvance,
+      },
+    }));
+    showToast(
+      `Signed with ${label.name} (${requestedRoyalty}% masters · +${formatMoney(requestedAdvance)})!`
+    );
+  };
+
+  const handleGoIndependent = () => {
+    if (!state || !state.contract) return;
+    synthAudio.playSfx('tap');
+    updateState((prev) => ({ ...prev, contract: null }));
+    showToast('Returned to Independent status (100% Masters & Royalties).');
+  };
+
+  const handleFoundPlayerLabel = (name: string) => {
+    if (!state || state.playerLabel || state.cash < 500000) return;
+    synthAudio.playSfx('chart_hit');
+    updateState((prev) => ({
+      ...prev,
+      cash: prev.cash - 500000,
+      hype: Math.min(100, prev.hype + 15),
+      popularity: Math.min(150, +(prev.popularity + 6).toFixed(1)),
+      playerLabel: {
+        name,
+        foundedYear: prev.date.year,
+        rosterIds: [],
+        totalRevenue: 0,
+        level: 1,
+      },
+    }));
+    showToast(`Incorporated "${name}" Record Label HQ!`);
+  };
+
+  const handleSignNpcToPlayerLabel = (
+    npcId: string,
+    labelSplitPercent: number,
+    signingBonus: number
+  ) => {
+    if (!state || !state.playerLabel || state.cash < signingBonus) return;
+    const npc = state.npcs.find((n) => n.id === npcId);
+    if (!npc || npc.signedToPlayerLabel) return;
+
+    synthAudio.playSfx('cash');
+    updateState((prev) => ({
+      ...prev,
+      cash: prev.cash - signingBonus,
+      playerLabel: prev.playerLabel
+        ? {
+            ...prev.playerLabel,
+            rosterIds: [...prev.playerLabel.rosterIds, npcId],
+          }
+        : null,
+      npcs: prev.npcs.map((n) =>
+        n.id === npcId
+          ? {
+              ...n,
+              signedToPlayerLabel: true,
+              playerLabelSplit: labelSplitPercent,
+              relationship: 'friend',
+              relationshipScore: Math.min(100, n.relationshipScore + 30),
+            }
+          : n
+      ),
+    }));
+    showToast(`Signed ${npc.name} to ${state.playerLabel.name} (${labelSplitPercent}% label cut)!`);
+  };
+
+  const handleBoostLabelArtist = (npcId: string, budget: number) => {
+    if (!state || !state.playerLabel || state.cash < budget) return;
+    const npc = state.npcs.find((n) => n.id === npcId);
+    if (!npc) return;
+
+    synthAudio.playSfx('notification');
+    updateState((prev) => ({
+      ...prev,
+      cash: prev.cash - budget,
+      npcs: prev.npcs.map((n) =>
+        n.id === npcId
+          ? {
+              ...n,
+              monthlyListeners: Math.round(n.monthlyListeners * 1.24),
+              fame: Math.min(12, n.fame + 1),
+              clout: Math.min(100, n.clout + 8),
+            }
+          : n
+      ),
+    }));
+    showToast(`Launched promo blitz for ${npc.name} (+24% monthly listeners)!`);
+  };
+
+  const handleStartTour = (
+    name: string,
+    venueTier: string,
+    citiesTotal: number,
+    ticketPrice: number,
+    upfront: number,
+    estimatedSellout: number
+  ) => {
+    if (!state || state.cash < upfront) return;
+    synthAudio.playSfx('chart_hit');
+    updateState((prev) => ({
+      ...prev,
+      cash: prev.cash - upfront,
+      hype: Math.min(100, prev.hype + 10),
+      activeTour: {
+        active: true,
+        name,
+        venueTier,
+        citiesTotal,
+        citiesCompleted: 0,
+        ticketPrice,
+        selloutPercent: estimatedSellout,
+        revenueEarned: 0,
+      },
+    }));
+    showToast(`Booked "${name}" (${venueTier} · Est. ${estimatedSellout}% sell-out)!`);
+  };
+
+  const handleLaunchMerch = (
+    name: string,
+    type: MerchItem['type'],
+    price: number,
+    eraAlbumTitle?: string
+  ) => {
+    if (!state || state.cash < 1500) return;
+    synthAudio.playSfx('cash');
+    const newItem: MerchItem = {
+      id: `merch_${Date.now()}`,
+      name,
+      type,
+      eraAlbumTitle,
+      price,
+      costToProduce: MERCH_COST_MAP[type],
+      unitsSold: 0,
+      weeklyRevenue: Math.round((state.popularity * 1.5 + state.fameLevel * 18) * price),
+      active: true,
+    };
+    updateState((prev) => ({
+      ...prev,
+      cash: prev.cash - 1500,
+      merchItems: [newItem, ...prev.merchItems],
+    }));
+    showToast(`Launched "${name}" in Merch Webstore!`);
+  };
+
+  const handleUpgradeMerchStore = () => {
+    if (!state || state.merchStoreLevel >= 4) return;
+    const cost = state.merchStoreLevel * 45000;
+    if (state.cash < cost) return;
+    synthAudio.playSfx('cash');
+    updateState((prev) => ({
+      ...prev,
+      cash: prev.cash - cost,
+      merchStoreLevel: Math.min(4, prev.merchStoreLevel + 1),
+    }));
+    showToast(`Upgraded Merch Store to Tier ${state.merchStoreLevel + 1}!`);
   };
 
   const handleCreatePost = (
@@ -721,7 +1217,7 @@ export default function App() {
     if (!state) return;
     synthAudio.playSfx('notification');
 
-    const likes = Math.round(40 + state.fameLevel * 1800 + Math.random() * 900);
+    const likes = Math.round(45 + state.fameLevel * 1800 + Math.random() * 900);
     const views = platform === 'tictok' || platform === 'youtube' ? likes * 14 : undefined;
     const song = state.songs.find((s) => s.id === extra?.songId);
 
@@ -746,34 +1242,41 @@ export default function App() {
       commentsList: [],
     };
 
-    const followerBump = Math.round(120 + state.fameLevel * 650);
+    const followerBump = Math.round(140 + state.fameLevel * 650);
 
     updateState((prev) => ({
       ...prev,
       posts: [newPost, ...prev.posts],
+      hype: Math.min(100, prev.hype + (song ? 6 : 3)),
       popularity: Math.min(150, +(prev.popularity + 0.5).toFixed(1)),
-      songs:
-        platform === 'tictok' && song
-          ? prev.songs.map((s) =>
-              s.id === song.id
-                ? {
-                    ...s,
-                    viralScore: Math.min(100, s.viralScore + 14),
-                    weeklyStreams: s.weeklyStreams + Math.round(followerBump * 18),
-                  }
-                : s
-            )
-          : prev.songs,
+      songs: song
+        ? prev.songs.map((s) =>
+            s.id === song.id
+              ? {
+                  ...s,
+                  viralScore: Math.min(100, s.viralScore + (platform === 'tictok' ? 14 : 9)),
+                  weeklyStreams: s.weeklyStreams + Math.round(followerBump * 16),
+                }
+              : s
+          )
+        : prev.songs,
       socialFollowers: {
         ...prev.socialFollowers,
         [platform]: prev.socialFollowers[platform] + followerBump,
       },
     }));
 
-    showToast(`Posted on ${platform.toUpperCase()} (+${formatCompactNumber(followerBump)} reach)`);
+    showToast(
+      `Posted on ${platform === 'x' ? 'CHIRPER' : platform.toUpperCase()} (+${formatCompactNumber(
+        followerBump
+      )} reach)`
+    );
   };
 
-  const handleEmailAction = (email: EmailMessage) => {
+  const handleEmailAction = (
+    email: EmailMessage,
+    customTerms?: { royaltyPercent?: number; advance?: number }
+  ) => {
     if (!state || email.actionCompleted) return;
 
     if (email.actionType === 'accept_feat') {
@@ -814,7 +1317,65 @@ export default function App() {
           e.id === email.id ? { ...e, actionCompleted: true, read: true } : e
         ),
       }));
-      showToast(`Collab "${title}" saved to Studio > Songs!`);
+      showToast(`Collab "${title}" saved to Studio Vault!`);
+    } else if (email.actionType === 'sign_label') {
+      const baseRoyalty = Number(email.actionPayload?.royaltyPercent || 45);
+      const baseAdvance = Number(email.actionPayload?.advance || 350000);
+      const reqRoyalty = customTerms?.royaltyPercent ?? baseRoyalty;
+      const reqAdvance = customTerms?.advance ?? baseAdvance;
+
+      if (
+        reqRoyalty > baseRoyalty + state.fameLevel * 1.2 + 5 ||
+        reqAdvance > baseAdvance * (1.25 + state.fameLevel * 0.02)
+      ) {
+        synthAudio.playSfx('tap');
+        showToast('Label countered: lower your royalty or advance demand slightly.');
+        return;
+      }
+
+      synthAudio.playSfx('chart_hit');
+      updateState((prev) => ({
+        ...prev,
+        cash: prev.cash + reqAdvance,
+        hype: Math.min(100, prev.hype + 12),
+        contract: {
+          labelId: String(email.actionPayload?.labelId || 'horizon_global'),
+          labelName: String(email.actionPayload?.labelName || email.fromName),
+          royaltyPercent: reqRoyalty,
+          albumsRequired: Number(email.actionPayload?.albumsRequired || 3),
+          albumsDelivered: 0,
+          promoBonus: Number(email.actionPayload?.promoBonus || 1.6),
+          advancePaid: reqAdvance,
+        },
+        emails: prev.emails.map((e) =>
+          e.id === email.id ? { ...e, actionCompleted: true, read: true } : e
+        ),
+      }));
+      showToast(`Signed deal with ${email.fromName} (${reqRoyalty}% · +${formatMoney(reqAdvance)})!`);
+    } else if (email.actionType === 'brand_deal' || email.actionType === 'festival_invite') {
+      const reward = Number(email.actionPayload?.reward || 25000);
+      const energyCost = Number(email.actionPayload?.energy || 8);
+      const popGain = Number(email.actionPayload?.popGain || 2.5);
+      if (state.energy < energyCost) {
+        showToast(`Need ${energyCost}⚡ Energy to complete this booking.`);
+        return;
+      }
+      synthAudio.playSfx('cash');
+      updateState((prev) => ({
+        ...prev,
+        cash: prev.cash + reward,
+        energy: prev.energy - energyCost,
+        hype: Math.min(100, prev.hype + 8),
+        popularity: Math.min(150, +(prev.popularity + popGain).toFixed(1)),
+        emails: prev.emails.map((e) =>
+          e.id === email.id ? { ...e, actionCompleted: true, read: true } : e
+        ),
+      }));
+      showToast(
+        `${email.actionType === 'festival_invite' ? 'Festival Headline Set' : 'Brand Deal'}: +${formatMoney(
+          reward
+        )}!`
+      );
     } else if (email.actionType === 'reply_fan') {
       synthAudio.playSfx('tap');
       updateState((prev) => ({
@@ -895,11 +1456,12 @@ export default function App() {
         ...prev,
         cash: prev.cash - cost,
         energy: action === 'date' ? Math.max(0, prev.energy - 2) : prev.energy,
+        hype: Math.min(100, prev.hype + 3),
         connections: prev.connections.map((c) =>
           c.id === id ? { ...c, loyalty: Math.min(100, c.loyalty + (action === 'gift' ? 15 : 8)) } : c
         ),
       }));
-      showToast(action === 'gift' ? 'Sent luxury gift! (+15 Loyalty)' : 'Great hangout! (+8 Loyalty)');
+      showToast(action === 'gift' ? 'Sent luxury gift! (+15 Loyalty)' : 'Great date night! (+8 Loyalty)');
     }
   };
 
@@ -911,375 +1473,201 @@ export default function App() {
           savedState ? `${savedState.artistName} · ${formatDateDot(savedState.date)}` : undefined
         }
         onContinueSaved={() => {
-          if (savedState) setState(savedState);
+          if (savedState) {
+            setState(savedState);
+            setActiveTab('advance');
+          }
         }}
-        onLoadBiigMtPreset={() => {
-          const preset = createBiigMtPresetState();
+        onLoadBiigMtPreset={(difficulty: DifficultyMode) => {
+          const preset = createBiigMtPresetState(difficulty);
           setState(preset);
-          setActiveTab('home');
+          setActiveTab('advance');
         }}
         onCreateNewCareer={(params) => {
           const fresh = createRookieCareerState(params);
           setState(fresh);
-          setActiveTab('home');
+          setActiveTab('advance');
         }}
       />
     );
   }
 
-  const unreadCount = state.emails.filter((e) => !e.read).length;
+  const unreadNotifications =
+    state.emails.filter((e) => !e.read).length + state.notifications.filter((n) => n.unread).length;
   const nowPlayingSong = state.songs.find((s) => s.id === state.nowPlayingSongId) || null;
 
   return (
-    <div className="min-h-dvh w-full bg-[#090a0d] text-zinc-100 flex flex-col lg:items-center lg:justify-center lg:p-5">
-      {/* Toast Feedback */}
+    <div className="min-h-dvh lg:h-dvh w-full media-centre-bg text-slate-100 flex flex-col overflow-x-hidden lg:overflow-hidden">
+      {/* Floating Career Toast */}
       {toast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-xl bg-amber-400 text-zinc-950 text-xs font-extrabold shadow-2xl border border-amber-300">
+        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-[70] px-4 py-2 rounded-full bg-emerald-400 text-slate-950 text-xs font-black shadow-2xl border border-emerald-200/70">
           {toast}
         </div>
       )}
 
-      {/* Main Responsive Stage */}
-      <div className="w-full max-w-[440px] mx-auto lg:max-w-[1060px] h-dvh lg:h-[820px] lg:max-h-[92vh] grid grid-cols-1 lg:grid-cols-[430px_1fr] lg:gap-5">
-        {/* LEFT COLUMN: ROCKSTAR CONSOLE */}
-        <div className="h-full min-h-0 console-surface lg:rounded-[26px] lg:border lg:border-white/[0.08] lg:shadow-[0_24px_60px_rgba(0,0,0,0.75)] flex flex-col overflow-hidden">
-          {mobilePhoneOpen ? (
-            <div className="lg:hidden h-full flex flex-col">
-              <SmartphoneOS
-                state={state}
-                activeApp={activePhoneApp}
-                onSelectApp={setActivePhoneApp}
-                onClosePhone={() => {
-                  setMobilePhoneOpen(false);
-                  setActivePhoneApp('home');
-                }}
-                onPlaySong={handlePlaySong}
-                onPromoteSong={handlePromoteSong}
-                onBuyAmazonePerk={(title, cost, energyBoost, popBoost) => {
-                  if (state.cash < cost) return;
-                  synthAudio.playSfx('cash');
-                  updateState((prev) => ({
-                    ...prev,
-                    cash: prev.cash - cost,
-                    energy: Math.min(prev.maxEnergy, prev.energy + energyBoost),
-                    popularity: Math.min(150, +(prev.popularity + popBoost).toFixed(1)),
-                  }));
-                  showToast(`Delivered ${title}!`);
-                }}
-                onReadEmail={(id) =>
-                  updateState((prev) => ({
-                    ...prev,
-                    emails: prev.emails.map((e) => (e.id === id ? { ...e, read: true } : e)),
-                  }))
-                }
-                onEmailAction={handleEmailAction}
-                onCreatePost={handleCreatePost}
-                onLikePost={(postId) =>
-                  updateState((prev) => ({
-                    ...prev,
-                    posts: prev.posts.map((p) =>
-                      p.id === postId
-                        ? {
-                            ...p,
-                            likedByPlayer: !p.likedByPlayer,
-                            likes: p.likedByPlayer ? p.likes - 1 : p.likes + 1,
-                          }
-                        : p
-                    ),
-                  }))
-                }
-                onBefriendNpc={(npcId) => handleQuickAction('befriend_npc', { npcId })}
-                onMatchLinkup={(profileId, accepted) => {
-                  const prof = state.linkupPool.find((p) => p.id === profileId);
-                  updateState((prev) => ({
-                    ...prev,
-                    linkupPool: prev.linkupPool.map((p) =>
-                      p.id === profileId ? { ...p, matched: true } : p
-                    ),
-                    connections:
-                      accepted && prof
-                        ? [
-                            ...prev.connections,
-                            {
-                              id: `conn_lu_${Date.now()}`,
-                              name: prof.name,
-                              role: 'Partner',
-                              initials: prof.initials,
-                              color: prof.color,
-                              weeklyCost: 1200,
-                              loyalty: 75,
-                              perkText: `${prof.role} · +2 Energy/wk`,
-                              isPartner: true,
-                            },
-                          ]
-                        : prev.connections,
-                  }));
-                  if (accepted && prof) showToast(`Matched with ${prof.name}!`);
-                }}
-                onChangePhoneSettings={(wp) =>
-                  updateState((prev) => ({ ...prev, phoneWallpaper: wp }))
-                }
-              />
-            </div>
-          ) : null}
+      {/* Landscape Sports-Broadcast Top Header + 7-Tab Strip */}
+      <TopHud
+        state={state}
+        activeTab={activeTab}
+        unreadNotifications={unreadNotifications}
+        onSelectTab={setActiveTab}
+        onOpenPhone={() => {
+          setActivePhoneApp('home');
+          setPhoneOverlayOpen(true);
+        }}
+        onToggleMute={handleToggleMute}
+      />
 
-          <div className={`${mobilePhoneOpen ? 'hidden lg:flex' : 'flex'} flex-col h-full min-h-0`}>
-            <TopHud
-              date={state.date}
-              energy={state.energy}
-              cash={state.cash}
-              activeTab={activeTab}
-              muted={state.muted}
-              onToggleMute={handleToggleMute}
-            />
+      {/* Main Active Screen */}
+      {activeTab === 'advance' && (
+        <AdvanceTimeHub
+          state={state}
+          headlineIdx={headlineIdx}
+          onCycleHeadline={() => setHeadlineIdx((i) => i + 1)}
+          onAdvanceTime={handleAdvanceTime}
+          onQuickAction={handleQuickAction}
+          onNavigateTab={setActiveTab}
+          onOpenPhoneApp={(app) => {
+            setActivePhoneApp(app);
+            setPhoneOverlayOpen(true);
+          }}
+          onPlaySong={handlePlaySong}
+        />
+      )}
 
-            {activeTab === 'home' && (
-              <HomeTab
-                state={state}
-                onAdvanceTime={handleAdvanceTime}
-                onOpenAvatarEditor={() => setAvatarModalOpen(true)}
-                onQuickAction={handleQuickAction}
-                onOpenPhoneApp={(app) => {
-                  setActivePhoneApp(app);
-                  setMobilePhoneOpen(true);
-                }}
-              />
-            )}
+      {activeTab === 'studio' && (
+        <StudioReleasesTab
+          state={state}
+          onRecordSong={handleRecordSong}
+          onReleaseSong={handleReleaseSong}
+          onReleaseAlbum={handleReleaseAlbum}
+          onShootVideo={handleShootVideo}
+          onUpgradeStudio={handleUpgradeStudio}
+          onPlaySong={handlePlaySong}
+          onPromoteSong={handlePromoteSong}
+        />
+      )}
 
-            {activeTab === 'music' && (
-              <MusicTab
-                state={state}
-                onPlaySong={handlePlaySong}
-                onPromoteSong={handlePromoteSong}
-              />
-            )}
+      {activeTab === 'brand' && (
+        <ArtistBrandTab
+          state={state}
+          onBuyCatalogItem={handleBuyCatalogItem}
+          onEquipClothing={(itemId) => {
+            updateState((prev) => ({
+              ...prev,
+              avatar: { ...prev.avatar, outfitId: itemId },
+            }));
+            showToast('Equipped wardrobe outfit!');
+          }}
+          onToggleJewelry={(itemId) => {
+            updateState((prev) => {
+              const has = prev.avatar.jewelryIds.includes(itemId);
+              return {
+                ...prev,
+                avatar: {
+                  ...prev.avatar,
+                  jewelryIds: has
+                    ? prev.avatar.jewelryIds.filter((j) => j !== itemId)
+                    : [...prev.avatar.jewelryIds, itemId],
+                },
+              };
+            });
+          }}
+          onUpdateAvatar={(patch: Partial<AvatarConfig>) => {
+            updateState((prev) => ({
+              ...prev,
+              avatar: { ...prev.avatar, ...patch },
+            }));
+          }}
+          onStartTour={handleStartTour}
+          onLaunchMerch={handleLaunchMerch}
+          onUpgradeMerchStore={handleUpgradeMerchStore}
+          onQuickAction={handleQuickAction}
+        />
+      )}
 
-            {activeTab === 'studio' && (
-              <StudioTab
-                state={state}
-                onRecordSong={handleRecordSong}
-                onReleaseSong={handleReleaseSong}
-                onReleaseAlbum={handleReleaseAlbum}
-                onShootVideo={handleShootVideo}
-                onUpgradeStudio={handleUpgradeStudio}
-              />
-            )}
+      {activeTab === 'label' && (
+        <LabelOfficeTab
+          state={state}
+          onNegotiateLabel={handleNegotiateLabel}
+          onGoIndependent={handleGoIndependent}
+          onFoundPlayerLabel={handleFoundPlayerLabel}
+          onSignNpcToPlayerLabel={handleSignNpcToPlayerLabel}
+          onBoostLabelArtist={handleBoostLabelArtist}
+        />
+      )}
 
-            {activeTab === 'world' && (
-              <WorldTab
-                state={state}
-                onBuyCatalogItem={handleBuyCatalogItem}
-                onEquipClothing={(itemId) => {
-                  updateState((prev) => ({
-                    ...prev,
-                    avatar: { ...prev.avatar, outfitId: itemId },
-                  }));
-                  showToast('Equipped outfit!');
-                }}
-                onToggleJewelry={(itemId) => {
-                  updateState((prev) => {
-                    const has = prev.avatar.jewelryIds.includes(itemId);
-                    return {
-                      ...prev,
-                      avatar: {
-                        ...prev.avatar,
-                        jewelryIds: has
-                          ? prev.avatar.jewelryIds.filter((j) => j !== itemId)
-                          : [...prev.avatar.jewelryIds, itemId],
-                      },
-                    };
-                  });
-                }}
-                onSignLabel={handleSignLabel}
-                onWorkJob={(title, pay, energy) => {
-                  if (state.energy < energy) return;
-                  synthAudio.playSfx('cash');
-                  updateState((prev) => ({
-                    ...prev,
-                    cash: prev.cash + pay,
-                    energy: prev.energy - energy,
-                  }));
-                  showToast(`${title}: +${formatMoney(pay)}`);
-                }}
-                onStartTour={(name, venueTier, citiesTotal, ticketPrice, upfront) => {
-                  if (state.cash < upfront) return;
-                  synthAudio.playSfx('chart_hit');
-                  updateState((prev) => ({
-                    ...prev,
-                    cash: prev.cash - upfront,
-                    activeTour: {
-                      active: true,
-                      name,
-                      venueTier,
-                      citiesTotal,
-                      citiesCompleted: 0,
-                      ticketPrice,
-                      revenueEarned: 0,
-                    },
-                  }));
-                  showToast(`Booked ${name} (${citiesTotal} cities)!`);
-                }}
-              />
-            )}
+      {activeTab === 'charts' && (
+        <ChartsDataTab
+          state={state}
+          onPlaySong={handlePlaySong}
+          onBefriendNpc={(npcId) => handleQuickAction('befriend_npc', { npcId })}
+          onStartBeef={(npcId) => handleQuickAction('start_beef', { npcId })}
+        />
+      )}
 
-            {activeTab === 'phone' && (
-              <PhoneHubTab
-                state={state}
-                onOpenPhone={() => {
-                  setActivePhoneApp('home');
-                  setMobilePhoneOpen(true);
-                }}
-              />
-            )}
+      {activeTab === 'trophies' && <TrophyRoomTab state={state} />}
 
-            {activeTab === 'settings' && (
-              <SettingsTab
-                state={state}
-                onToggleMute={handleToggleMute}
-                onSaveSlot={(slot) => {
-                  localStorage.setItem(`rockstar_slot_${slot}`, JSON.stringify(state));
-                }}
-                onLoadSlot={(slot) => {
-                  const raw = localStorage.getItem(`rockstar_slot_${slot}`);
-                  if (raw) setState(JSON.parse(raw) as GameState);
-                }}
-                onNewCareer={() => {
-                  synthAudio.stopSong();
-                  setState(null);
-                }}
-                onLoadPreset={() => {
-                  synthAudio.stopSong();
-                  setState(createBiigMtPresetState());
-                  setActiveTab('home');
-                }}
-                onImportState={(json) => {
-                  try {
-                    const parsed = JSON.parse(json) as GameState;
-                    if (!parsed.artistName || !parsed.date) return false;
-                    setState(parsed);
-                    return true;
-                  } catch {
-                    return false;
-                  }
-                }}
-              />
-            )}
+      {activeTab === 'system' && (
+        <SystemTab
+          state={state}
+          onToggleMute={handleToggleMute}
+          onResetCareer={() => {
+            synthAudio.stopSong();
+            setState(null);
+          }}
+          onImportState={(next) => {
+            setState(hydrateLoadedState(next));
+            setActiveTab('advance');
+          }}
+          onNotify={showToast}
+        />
+      )}
 
-            {activeTab === 'love' && (
-              <LoveTab
-                state={state}
-                onLoveAction={handleLoveAction}
-                onOpenLinkup={() => {
-                  setActivePhoneApp('linkup');
-                  setMobilePhoneOpen(true);
-                }}
-              />
-            )}
+      {/* Bottom Breaking News Ticker & Mini Synth Player */}
+      <BottomNewsTicker
+        state={state}
+        nowPlayingSong={nowPlayingSong}
+        onPlaySong={handlePlaySong}
+        onNextStory={() => setHeadlineIdx((i) => i + 1)}
+      />
 
-            <BottomDock
-              activeTab={activeTab}
-              onSelectTab={(tab) => {
-                synthAudio.playSfx('tap');
-                setActiveTab(tab);
-              }}
-              unreadBadgeCount={unreadCount}
-            />
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN (Desktop >= 1024px): Live Smartphone + Audio Beat Deck */}
-        <div className="hidden lg:flex flex-col h-full min-h-0 bg-[#0e1015] rounded-[26px] border border-white/[0.08] shadow-[0_24px_60px_rgba(0,0,0,0.75)] overflow-hidden">
-          {/* Top Audio Synth Monitor */}
-          <div className="px-5 py-3 border-b border-white/[0.06] bg-[#14161c] flex items-center justify-between gap-4 shrink-0">
-            <div className="flex items-center gap-3 min-w-0">
-              {nowPlayingSong ? (
-                <>
-                  <img
-                    src={nowPlayingSong.coverUrl}
-                    alt={nowPlayingSong.title}
-                    referrerPolicy="no-referrer"
-                    className="w-10 h-10 rounded-lg object-cover shrink-0 border border-white/10"
-                  />
-                  <div className="min-w-0">
-                    <div className="text-xs font-extrabold text-white truncate">
-                      {nowPlayingSong.title}
-                    </div>
-                    <div className="font-mono-num text-[11px] text-zinc-400 truncate">
-                      {nowPlayingSong.genre} · {nowPlayingSong.bpm} BPM · {nowPlayingSong.mood}
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="flex items-center gap-2 text-xs text-zinc-400">
-                  <Radio className="w-4 h-4 text-amber-400" />
-                  <span>Select any song in Catalog or Soundify to preview beat synth</span>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-3 shrink-0">
-              {nowPlayingSong && (
-                <>
-                  {/* 8-bar beat step visualizer */}
-                  <div className="flex items-end gap-0.5 h-5">
-                    {Array.from({ length: 8 }, (_, i) => {
-                      const active = state.isAudioPlaying && beatStep % 8 === i;
-                      return (
-                        <span
-                          key={i}
-                          className={`w-1 rounded-full snap-transition ${
-                            active ? 'h-5 bg-amber-400' : state.isAudioPlaying ? 'h-2.5 bg-amber-400/40' : 'h-1.5 bg-zinc-700'
-                          }`}
-                        />
-                      );
-                    })}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handlePlaySong(nowPlayingSong.id)}
-                    className="w-9 h-9 rounded-lg bg-amber-400 hover:bg-amber-300 text-zinc-950 flex items-center justify-center"
-                  >
-                    {state.isAudioPlaying ? (
-                      <Pause className="w-4 h-4 fill-current" />
-                    ) : (
-                      <Play className="w-4 h-4 fill-current ml-0.5" />
-                    )}
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Live Synced Smartphone OS */}
-          <div className="flex-1 min-h-0">
-            <SmartphoneOS
-              state={state}
-              activeApp={activePhoneApp}
-              onSelectApp={setActivePhoneApp}
-              showTopHeader={false}
-              onPlaySong={handlePlaySong}
-              onPromoteSong={handlePromoteSong}
-              onBuyAmazonePerk={(title, cost, energyBoost, popBoost) => {
-                if (state.cash < cost) return;
-                synthAudio.playSfx('cash');
-                updateState((prev) => ({
-                  ...prev,
-                  cash: prev.cash - cost,
-                  energy: Math.min(prev.maxEnergy, prev.energy + energyBoost),
-                  popularity: Math.min(150, +(prev.popularity + popBoost).toFixed(1)),
-                }));
-                showToast(`Delivered ${title}!`);
-              }}
-              onReadEmail={(id) =>
-                updateState((prev) => ({
+      {/* Phone Overlay Sub-Menu (Chirper, Messages, Streaming, Dating & Alerts) */}
+      <PhoneOverlay
+        open={phoneOverlayOpen}
+        state={state}
+        activeApp={activePhoneApp}
+        onSelectApp={setActivePhoneApp}
+        onClose={() => setPhoneOverlayOpen(false)}
+        onPlaySong={handlePlaySong}
+        onPromoteSong={handlePromoteSong}
+        onBuyAmazonePerk={(title, cost, energyBoost, popBoost) => {
+          if (state.cash < cost) return;
+          synthAudio.playSfx('cash');
+          updateState((prev) => ({
+            ...prev,
+            cash: prev.cash - cost,
+            energy: Math.min(prev.maxEnergy, prev.energy + energyBoost),
+            popularity: Math.min(150, +(prev.popularity + popBoost).toFixed(1)),
+          }));
+          showToast(`Delivered ${title}!`);
+        }}
+        onReadEmail={(id) =>
+          setState((prev) =>
+            prev
+              ? {
                   ...prev,
                   emails: prev.emails.map((e) => (e.id === id ? { ...e, read: true } : e)),
-                }))
-              }
-              onEmailAction={handleEmailAction}
-              onCreatePost={handleCreatePost}
-              onLikePost={(postId) =>
-                updateState((prev) => ({
+                }
+              : prev
+          )
+        }
+        onEmailAction={handleEmailAction}
+        onCreatePost={handleCreatePost}
+        onLikePost={(postId) =>
+          setState((prev) =>
+            prev
+              ? {
                   ...prev,
                   posts: prev.posts.map((p) =>
                     p.id === postId
@@ -1290,118 +1678,54 @@ export default function App() {
                         }
                       : p
                   ),
-                }))
-              }
-              onBefriendNpc={(npcId) => handleQuickAction('befriend_npc', { npcId })}
-              onMatchLinkup={(profileId, accepted) => {
-                const prof = state.linkupPool.find((p) => p.id === profileId);
-                updateState((prev) => ({
+                }
+              : prev
+          )
+        }
+        onBefriendNpc={(npcId) => handleQuickAction('befriend_npc', { npcId })}
+        onStartBeef={(npcId) => handleQuickAction('start_beef', { npcId })}
+        onMatchLinkup={(profileId, accepted) => {
+          const prof = state.linkupPool.find((p) => p.id === profileId);
+          updateState((prev) => ({
+            ...prev,
+            linkupPool: prev.linkupPool.map((p) =>
+              p.id === profileId ? { ...p, matched: true } : p
+            ),
+            connections:
+              accepted && prof
+                ? [
+                    ...prev.connections,
+                    {
+                      id: `conn_lu_${Date.now()}`,
+                      name: prof.name,
+                      role: 'Partner',
+                      initials: prof.initials,
+                      color: prof.color,
+                      weeklyCost: 1200,
+                      loyalty: 75,
+                      perkText: `${prof.role} · +2 Energy/day`,
+                      isPartner: true,
+                    },
+                  ]
+                : prev.connections,
+          }));
+          if (accepted && prof) showToast(`Matched with ${prof.name}!`);
+        }}
+        onChangePhoneSettings={(wp) =>
+          setState((prev) => (prev ? { ...prev, phoneWallpaper: wp } : prev))
+        }
+        onLoveAction={handleLoveAction}
+        onMarkNotificationsRead={() =>
+          setState((prev) =>
+            prev
+              ? {
                   ...prev,
-                  linkupPool: prev.linkupPool.map((p) =>
-                    p.id === profileId ? { ...p, matched: true } : p
-                  ),
-                  connections:
-                    accepted && prof
-                      ? [
-                          ...prev.connections,
-                          {
-                            id: `conn_lu_${Date.now()}`,
-                            name: prof.name,
-                            role: 'Partner',
-                            initials: prof.initials,
-                            color: prof.color,
-                            weeklyCost: 1200,
-                            loyalty: 75,
-                            perkText: `${prof.role} · +2 Energy/wk`,
-                            isPartner: true,
-                          },
-                        ]
-                      : prev.connections,
-                }));
-                if (accepted && prof) showToast(`Matched with ${prof.name}!`);
-              }}
-              onChangePhoneSettings={(wp) =>
-                updateState((prev) => ({ ...prev, phoneWallpaper: wp }))
-              }
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Avatar Look Editor Modal */}
-      {avatarModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-[#14161c] border border-white/10 rounded-2xl p-4 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="font-display font-extrabold text-white">Customize Look</h3>
-              <button
-                type="button"
-                onClick={() => setAvatarModalOpen(false)}
-                className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-zinc-300"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="flex justify-center bg-[#0e1015] border border-white/[0.06] rounded-xl py-2">
-              <ArtistAvatar avatar={state.avatar} size={140} />
-            </div>
-            <div className="space-y-2.5 text-xs">
-              <div>
-                <div className="text-zinc-400 font-bold mb-1">Hairstyle</div>
-                <div className="flex flex-wrap gap-1.5">
-                  {(['bald', 'buzz', 'waves', 'dreads', 'curly', 'afro', 'spiky', 'long'] as const).map(
-                    (hs) => (
-                      <button
-                        key={hs}
-                        type="button"
-                        onClick={() =>
-                          updateState((prev) => ({
-                            ...prev,
-                            avatar: { ...prev.avatar, hairStyle: hs },
-                          }))
-                        }
-                        className={`px-2.5 py-1 rounded-lg capitalize font-semibold ${
-                          state.avatar.hairStyle === hs
-                            ? 'bg-amber-400 text-zinc-950 font-bold'
-                            : 'bg-[#1a1d26] text-zinc-300'
-                        }`}
-                      >
-                        {hs}
-                      </button>
-                    )
-                  )}
-                </div>
-              </div>
-              <div>
-                <div className="text-zinc-400 font-bold mb-1">Eyewear</div>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {(['none', 'shades', 'round', 'designer'] as AvatarConfig['eyewear'][]).map(
-                    (ew) => (
-                      <button
-                        key={ew}
-                        type="button"
-                        onClick={() =>
-                          updateState((prev) => ({
-                            ...prev,
-                            avatar: { ...prev.avatar, eyewear: ew },
-                          }))
-                        }
-                        className={`py-1.5 rounded-lg capitalize font-semibold ${
-                          state.avatar.eyewear === ew
-                            ? 'bg-amber-400 text-zinc-950 font-bold'
-                            : 'bg-[#1a1d26] text-zinc-300'
-                        }`}
-                      >
-                        {ew}
-                      </button>
-                    )
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+                  notifications: prev.notifications.map((n) => ({ ...n, unread: false })),
+                }
+              : prev
+          )
+        }
+      />
     </div>
   );
 }

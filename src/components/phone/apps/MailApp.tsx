@@ -1,22 +1,27 @@
 import React, { useState } from 'react';
 import {
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clapperboard,
   DollarSign,
+  Handshake,
   Newspaper,
   Search,
-  SquarePen,
-  CheckCircle2,
   Send,
+  SquarePen,
 } from 'lucide-react';
+import { formatMoney } from '../../../engine/simulation';
 import { EmailMessage, GameState } from '../../../types/game';
 
 interface MailAppProps {
   state: GameState;
   onBackHome: () => void;
   onReadEmail: (emailId: string) => void;
-  onEmailAction: (email: EmailMessage) => void;
+  onEmailAction: (
+    email: EmailMessage,
+    customTerms?: { royaltyPercent?: number; advance?: number }
+  ) => void;
 }
 
 export const MailApp: React.FC<MailAppProps> = ({
@@ -29,6 +34,8 @@ export const MailApp: React.FC<MailAppProps> = ({
   const [search, setSearch] = useState('');
   const [openEmailId, setOpenEmailId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
+  const [negRoyalty, setNegRoyalty] = useState<number | null>(null);
+  const [negAdvance, setNegAdvance] = useState<number | null>(null);
 
   const filtered = state.emails.filter((m) => {
     const matchesSearch =
@@ -44,12 +51,21 @@ export const MailApp: React.FC<MailAppProps> = ({
   const openEmail = state.emails.find((e) => e.id === openEmailId) || null;
 
   if (openEmail) {
+    const baseAdvance = Number(openEmail.actionPayload?.advance || 350000);
+    const baseRoyalty = Number(openEmail.actionPayload?.royaltyPercent || 45);
+    const curRoyalty = negRoyalty ?? baseRoyalty;
+    const curAdvance = negAdvance ?? baseAdvance;
+
     return (
       <div className="h-full bg-black text-white flex flex-col">
         <div className="px-3 pt-3 pb-2 flex items-center justify-between border-b border-white/10">
           <button
             type="button"
-            onClick={() => setOpenEmailId(null)}
+            onClick={() => {
+              setOpenEmailId(null);
+              setNegRoyalty(null);
+              setNegAdvance(null);
+            }}
             className="flex items-center gap-0.5 text-[#0a84ff] text-sm font-medium"
           >
             <ChevronLeft className="w-5 h-5" /> Inbox
@@ -80,7 +96,7 @@ export const MailApp: React.FC<MailAppProps> = ({
             <div className="pt-2">
               {openEmail.actionCompleted ? (
                 <div className="p-3 rounded-xl bg-emerald-950/50 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4" /> Studio session locked in! Check Studio &gt; Songs.
+                  <CheckCircle2 className="w-4 h-4" /> Studio session locked in! Check Studio Vault.
                 </div>
               ) : (
                 <button
@@ -89,6 +105,84 @@ export const MailApp: React.FC<MailAppProps> = ({
                   className="w-full py-2.5 rounded-xl bg-[#0a84ff] hover:bg-[#2492ff] text-white text-xs font-bold"
                 >
                   Accept Studio Collab Session
+                </button>
+              )}
+            </div>
+          )}
+
+          {openEmail.actionType === 'sign_label' && (
+            <div className="pt-2 space-y-3 border-t border-white/10">
+              {openEmail.actionCompleted ? (
+                <div className="p-3 rounded-xl bg-emerald-950/50 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4" /> Contract Terms Finalized!
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-[#1c1c1e] space-y-2.5">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300">
+                    <Handshake className="w-4 h-4" /> Negotiate Contract Terms
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-[11px] mb-1">
+                      <span className="text-zinc-400">Royalty Split</span>
+                      <span className="font-bold text-emerald-400">{curRoyalty}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={Math.max(25, baseRoyalty - 12)}
+                      max={Math.min(80, baseRoyalty + 20)}
+                      value={curRoyalty}
+                      onChange={(e) => setNegRoyalty(Number(e.target.value))}
+                      className="w-full accent-emerald-400"
+                    />
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-[11px] mb-1">
+                      <span className="text-zinc-400">Signing Advance</span>
+                      <span className="font-bold text-amber-300">{formatMoney(curAdvance)}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={Math.round(baseAdvance * 0.7)}
+                      max={Math.round(baseAdvance * 1.5)}
+                      step={Math.max(5000, Math.round(baseAdvance * 0.05))}
+                      value={curAdvance}
+                      onChange={(e) => setNegAdvance(Number(e.target.value))}
+                      className="w-full accent-amber-400"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onEmailAction(openEmail, {
+                        royaltyPercent: curRoyalty,
+                        advance: curAdvance,
+                      })
+                    }
+                    className="w-full py-2.5 rounded-xl bg-[#0a84ff] hover:bg-[#2492ff] text-white text-xs font-bold"
+                  >
+                    Counter & Sign Deal ({curRoyalty}% · {formatMoney(curAdvance)})
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {(openEmail.actionType === 'brand_deal' || openEmail.actionType === 'festival_invite') && (
+            <div className="pt-2">
+              {openEmail.actionCompleted ? (
+                <div className="p-3 rounded-xl bg-emerald-950/50 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4" /> Deal Completed & Payout Credited!
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={state.energy < Number(openEmail.actionPayload?.energy || 8)}
+                  onClick={() => onEmailAction(openEmail)}
+                  className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-slate-950 text-xs font-black"
+                >
+                  Accept {openEmail.actionType === 'festival_invite' ? 'Festival Slot' : 'Brand Deal'} (+
+                  {formatMoney(Number(openEmail.actionPayload?.reward || 25000))} · -
+                  {Number(openEmail.actionPayload?.energy || 8)}⚡)
                 </button>
               )}
             </div>
@@ -140,12 +234,12 @@ export const MailApp: React.FC<MailAppProps> = ({
           <ChevronLeft className="w-5 h-5" />
           <span>Mailboxes</span>
         </button>
-        <span className="font-normal">Select</span>
+        <span className="font-normal">Inbox</span>
       </div>
 
       {/* Inbox Title & Search */}
       <div className="px-3.5 pt-1 pb-2 space-y-2.5">
-        <h1 className="text-[28px] font-extrabold tracking-tight leading-none">Inbox</h1>
+        <h1 className="text-[26px] font-extrabold tracking-tight leading-none">Inbox</h1>
         <div className="relative">
           <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
           <input

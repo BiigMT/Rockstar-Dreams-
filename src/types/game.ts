@@ -1,26 +1,144 @@
 export type GamePhase = 'TITLE' | 'CREATOR' | 'PLAYING' | 'GAME_OVER';
 
-export type MainTab = 'home' | 'music' | 'studio' | 'world' | 'phone' | 'settings' | 'love';
+export type DifficultyMode = 'Casual' | 'Realistic' | 'Hardcore';
+
+export type MainTab =
+  | 'advance'
+  | 'studio'
+  | 'brand'
+  | 'label'
+  | 'charts'
+  | 'trophies'
+  | 'system';
 
 export type PhoneAppId =
   | 'home'
+  | 'chirper'
+  | 'mail'
+  | 'linkup'
   | 'soundify'
-  | 'amazone'
   | 'pearmusic'
+  | 'amazone'
   | 'streaming'
   | 'fakebook'
   | 'goggle'
-  | 'mail'
   | 'phone_settings'
-  | 'linkup'
   | 'youtube'
   | 'instaglam'
   | 'x'
   | 'tictok';
 
-export type MusicGenre = 'Hip-Hop' | 'R&B' | 'Pop' | 'Trap' | 'Indie' | 'Rock';
+export type MusicGenre =
+  | 'Hip-Hop'
+  | 'Trap'
+  | 'Melodic Rap'
+  | 'R&B'
+  | 'Pop'
+  | 'Drill'
+  | 'Afrobeats'
+  | 'Rock'
+  | 'Alternative'
+  | 'Indie'
+  | 'Reggaeton'
+  | 'Electronic'
+  | 'Soul'
+  | 'Country'
+  | 'K-Pop'
+  | 'Lo-Fi'
+  | 'House'
+  | 'Techno'
+  | 'Amapiano'
+  | 'Dancehall'
+  | 'Jazz'
+  | 'Funk'
+  | 'Punk'
+  | 'Metal'
+  | 'Latin Trap'
+  | 'Synthpop'
+  | 'Grime'
+  | 'Gospel'
+  | 'Boom Bap'
+  | 'Folk'
+  | 'Disco'
+  | 'Hyperpop';
 
-export type SongMood = 'Dark' | 'Hype' | 'Melodic' | 'Emotional' | 'Flex' | 'Chill';
+export type SongMood = 'Dark' | 'Hype' | 'Melodic' | 'Emotional' | 'Flex' | 'Chill' | 'Diss';
+
+export type ChartRegion = 'Global' | 'North America' | 'Europe' | 'UK';
+
+export interface CustomCoverConfig {
+  mode: 'photo' | 'custom';
+  bgColor: string;
+  accentColor: string;
+  pattern: 'vinyl' | 'waves' | 'grid' | 'radial' | 'minimal';
+  badge: 'NONE' | 'EXPLICIT' | 'DELUXE' | 'LIVE' | 'TOUR';
+  subtitle?: string;
+}
+
+export interface OriginStory {
+  id: string;
+  title: string;
+  tagline: string;
+  startingCash: number;
+  startingPop: number;
+  startingFame: number;
+  bonusFollowers: number;
+  heatStart: number;
+  skillBoosts: Partial<ArtistSkills>;
+  perkSummary: string;
+}
+
+export interface ArtistSkills {
+  songwriting: number; // Lyrics (1-100)
+  vocals: number; // Flow / Vocals (1-100)
+  production: number; // Production (1-100)
+  stagePresence: number; // Charisma (1-100)
+  marketing: number; // Promo / Hype (1-100)
+}
+
+export interface MerchItem {
+  id: string;
+  name: string;
+  type: 'Hoodie' | 'Tour Tee' | 'Vinyl LP' | 'Cap' | 'Collector Box';
+  eraAlbumTitle?: string;
+  price: number;
+  costToProduce: number;
+  unitsSold: number;
+  weeklyRevenue: number;
+  active: boolean;
+}
+
+export interface AwardRecord {
+  id: string;
+  year: number;
+  showName: string;
+  category: string;
+  nomineeTitle: string;
+  won: boolean;
+}
+
+export type PlaqueTier = 'Gold' | 'Platinum' | 'Multi-Platinum' | 'Diamond';
+
+export interface PlaqueRecord {
+  id: string;
+  targetId: string;
+  title: string;
+  type: 'Single' | 'Album';
+  tier: PlaqueTier;
+  units: number;
+  dateStr: string;
+  coverUrl: string;
+  customCover?: CustomCoverConfig;
+}
+
+export interface AchievementDef {
+  id: string;
+  title: string;
+  desc: string;
+  perkLabel: string;
+  perkType: 'streams' | 'energy' | 'fees' | 'tour' | 'merch' | 'viral';
+  perkValue: number;
+}
 
 export interface AvatarConfig {
   skinTone: string;
@@ -48,10 +166,14 @@ export interface Song {
   mood: SongMood;
   bpm: number;
   coverUrl: string;
+  customCover?: CustomCoverConfig;
   quality: number; // 1 - 100
   featuredArtistId?: string;
   featuredArtistName?: string;
+  dissTargetId?: string;
+  dissTargetName?: string;
   producerName: string;
+  marketingBudget?: number;
   released: boolean;
   releaseDate?: GameDate;
   releaseYear?: number;
@@ -60,8 +182,10 @@ export interface Song {
   totalStreams: number;
   weeklyStreams: number;
   dailyStreams: number;
+  unitsSold?: number;
   peakChartPos: number | null;
   currentChartPos: number | null;
+  regionalPeaks?: Record<ChartRegion, number | null>;
   weeksOnChart: number;
   viralScore: number; // 0 - 100
   playlistReach: number; // 0 - 100
@@ -78,6 +202,7 @@ export interface Album {
   title: string;
   type: 'ALBUM' | 'EP' | 'MIXTAPE' | 'COLLAB';
   coverUrl: string;
+  customCover?: CustomCoverConfig;
   songIds: string[];
   collabArtistId?: string;
   collabArtistName?: string;
@@ -86,6 +211,7 @@ export interface Album {
   releaseYear?: number;
   totalStreams: number;
   weeklyStreams: number;
+  unitsSold?: number;
   firstWeekUnits: number;
   peakChartPos: number | null;
   currentChartPos: number | null;
@@ -97,6 +223,7 @@ export interface NpcArtist {
   name: string;
   handle: string;
   genre: MusicGenre;
+  tier?: 'Underground' | 'Rising' | 'Mainstream' | 'Superstar' | 'Legend';
   fame: number; // 1-12
   clout: number; // 0-100
   monthlyListeners: number;
@@ -106,6 +233,8 @@ export interface NpcArtist {
   avatarColor: string;
   initials: string;
   signatureHit: string;
+  signedToPlayerLabel?: boolean;
+  playerLabelSplit?: number; // % kept by player label
 }
 
 export interface NpcChartSong {
@@ -133,7 +262,14 @@ export interface EmailMessage {
   body: string;
   dateLabel: string;
   read: boolean;
-  actionType?: 'accept_feat' | 'sign_label' | 'accept_gig' | 'claim_royalty' | 'reply_fan';
+  actionType?:
+    | 'accept_feat'
+    | 'sign_label'
+    | 'accept_gig'
+    | 'festival_invite'
+    | 'brand_deal'
+    | 'claim_royalty'
+    | 'reply_fan';
   actionPayload?: Record<string, string | number>;
   actionCompleted?: boolean;
 }
@@ -183,6 +319,8 @@ export interface CatalogItem {
   price: number;
   weeklyCost: number;
   weeklyIncome?: number;
+  energyBonus?: number;
+  hypeBonus?: number;
   statusGain: number;
   tierLabel: string;
   visualKey?: string;
@@ -209,6 +347,14 @@ export interface ActiveContract {
   albumsDelivered: number;
   promoBonus: number;
   advancePaid: number;
+}
+
+export interface PlayerLabelState {
+  name: string;
+  foundedYear: number;
+  rosterIds: string[];
+  totalRevenue: number;
+  level: number;
 }
 
 export interface ConnectionPerson {
@@ -251,25 +397,43 @@ export interface TourState {
   citiesTotal: number;
   citiesCompleted: number;
   ticketPrice: number;
+  selloutPercent: number;
   revenueEarned: number;
 }
 
 export interface GameState {
   phase: GamePhase;
+  difficulty: DifficultyMode;
   artistName: string;
   handle: string;
   genre: MusicGenre;
   hometown: string;
+  originStoryTitle?: string;
   avatar: AvatarConfig;
   date: GameDate;
   fameLevel: number;
   popularity: number; // 0 - 150
-  energy: number; // 0 - 100
+  hype: number; // 0 - 100
+  reputation: 'Underground' | 'Rising' | 'Respected' | 'Star' | 'Elite' | 'Icon';
+  energy: number; // 0 - maxEnergy
   maxEnergy: number;
   cash: number;
   netWorth: number;
   statusPoints: number;
   statusTarget: number;
+
+  // Artist Skills (Lyrics, Flow, Production, Charisma, Marketing)
+  skills: ArtistSkills;
+
+  // Merch Webstore
+  merchStoreLevel: number; // 1-4
+  merchItems: MerchItem[];
+
+  // Awards, Plaques & Achievements
+  awardsHistory: AwardRecord[];
+  plaques: PlaqueRecord[];
+  unlockedAchievements: string[];
+  lastAwardYearProcessed: number;
 
   // Side careers
   producerRank: string;
@@ -279,8 +443,9 @@ export interface GameState {
   heatLevel: number; // Crime risk 0 - 100
   inJailDays: number;
 
-  // Label & Studio
+  // Label & Studio & Player Label Empire
   contract: ActiveContract | null;
+  playerLabel: PlayerLabelState | null;
   studio: StudioState;
   activeTour: TourState | null;
 
@@ -324,6 +489,7 @@ export interface GameState {
     songsReleased: number;
     videosShot: number;
     highestWeeklyStreams: number;
+    soldOutArenas: number;
   };
 
   // UI / Audio

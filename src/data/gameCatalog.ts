@@ -1,10 +1,13 @@
 import {
+  AchievementDef,
   CatalogItem,
+  DifficultyMode,
   GameState,
   LinkupProfile,
   MusicGenre,
   NpcArtist,
   NpcChartSong,
+  OriginStory,
   RecordLabel,
   StudioState,
 } from '../types/game';
@@ -34,6 +37,284 @@ export const COVER_ARTS = [
 
 export const STUDIO_BACKDROP_URL =
   '/src/assets/images/title_studio_backdrop_1795389027786.jpg';
+
+export const ALL_GENRES: MusicGenre[] = [
+  'Hip-Hop',
+  'Trap',
+  'Melodic Rap',
+  'R&B',
+  'Pop',
+  'Drill',
+  'Afrobeats',
+  'Rock',
+  'Alternative',
+  'Indie',
+  'Reggaeton',
+  'Electronic',
+  'Soul',
+  'Country',
+  'K-Pop',
+  'Lo-Fi',
+  'House',
+  'Techno',
+  'Amapiano',
+  'Dancehall',
+  'Jazz',
+  'Funk',
+  'Punk',
+  'Metal',
+  'Latin Trap',
+  'Synthpop',
+  'Grime',
+  'Gospel',
+  'Boom Bap',
+  'Folk',
+  'Disco',
+  'Hyperpop',
+];
+
+export const DIFFICULTY_CONFIGS: Record<
+  DifficultyMode,
+  {
+    label: string;
+    subtitle: string;
+    streamMult: number;
+    feeMult: number;
+    cashMult: number;
+    hypeRetention: number;
+    badgeColor: string;
+    description: string;
+  }
+> = {
+  Casual: {
+    label: 'Casual (Indie Dream)',
+    subtitle: 'Indie Dream',
+    streamMult: 1.45,
+    feeMult: 0.72,
+    cashMult: 1.6,
+    hypeRetention: 0.94,
+    badgeColor: '#10b981',
+    description: 'Higher viral stream velocity, 28% cheaper promo/studio costs, generous starting cash.',
+  },
+  Realistic: {
+    label: 'Realistic (Industry Grind)',
+    subtitle: 'Industry Grind',
+    streamMult: 1.0,
+    feeMult: 1.0,
+    cashMult: 1.0,
+    hypeRetention: 0.88,
+    badgeColor: '#2563eb',
+    description: 'True-to-life chart decay, balanced label negotiations, and competitive rival releases.',
+  },
+  Hardcore: {
+    label: 'Hardcore (Underground Struggle)',
+    subtitle: 'Underground Struggle',
+    streamMult: 0.72,
+    feeMult: 1.35,
+    cashMult: 0.65,
+    hypeRetention: 0.82,
+    badgeColor: '#e11d48',
+    description: 'Ruthless chart climb, 35% pricier studio & marketing fees, unforgiving hype decay.',
+  },
+};
+
+export const ACHIEVEMENTS_CATALOG: AchievementDef[] = [
+  {
+    id: 'ach_first_drop',
+    title: 'First Drop',
+    desc: 'Release your first official song to streaming platforms.',
+    perkLabel: '+5% Global Streams',
+    perkType: 'streams',
+    perkValue: 0.05,
+  },
+  {
+    id: 'ach_hot100',
+    title: 'Chart Debut',
+    desc: 'Enter the Global Billboard Hot 100.',
+    perkLabel: '+5% Global Streams',
+    perkType: 'streams',
+    perkValue: 0.05,
+  },
+  {
+    id: 'ach_no1_hit',
+    title: '#1 Hitmaker',
+    desc: 'Reach #1 on the Global Billboard Hot 100.',
+    perkLabel: '+10% Global Streams',
+    perkType: 'streams',
+    perkValue: 0.1,
+  },
+  {
+    id: 'ach_gold_plaque',
+    title: 'Gold Certified',
+    desc: 'Earn your first RIAA Gold Plaque (500K equivalent units).',
+    perkLabel: '-10% Studio & Feature Fees',
+    perkType: 'fees',
+    perkValue: 0.1,
+  },
+  {
+    id: 'ach_platinum_plaque',
+    title: 'Platinum Status',
+    desc: 'Earn an RIAA Platinum Plaque (1M equivalent units).',
+    perkLabel: '+8 Max Energy',
+    perkType: 'energy',
+    perkValue: 8,
+  },
+  {
+    id: 'ach_diamond_plaque',
+    title: 'Diamond Icon',
+    desc: 'Cross 10M equivalent units on a release for a Diamond Plaque.',
+    perkLabel: '+20% Global Streams',
+    perkType: 'streams',
+    perkValue: 0.2,
+  },
+  {
+    id: 'ach_viral_wave',
+    title: 'Viral Sensation',
+    desc: 'Surpass 5M total streams on a single record.',
+    perkLabel: '+15% Hype & Viral Gain',
+    perkType: 'viral',
+    perkValue: 0.15,
+  },
+  {
+    id: 'ach_sold_out_arena',
+    title: 'Arena Headliner',
+    desc: 'Complete an Arena or World Stadium tour.',
+    perkLabel: '+15% Tour Ticket Revenue',
+    perkType: 'tour',
+    perkValue: 0.15,
+  },
+  {
+    id: 'ach_merch_mogul',
+    title: 'Merch Mogul',
+    desc: 'Sell at least 10,000 Merch Webstore units across all eras.',
+    perkLabel: '+20% Merch Webstore Profit',
+    perkType: 'merch',
+    perkValue: 0.2,
+  },
+  {
+    id: 'ach_label_founder',
+    title: 'Executive Mogul',
+    desc: 'Found your own independent Record Label imprint.',
+    perkLabel: '-15% Studio & Promo Costs',
+    perkType: 'fees',
+    perkValue: 0.15,
+  },
+  {
+    id: 'ach_award_winner',
+    title: 'Award Winner',
+    desc: 'Win a trophy at the Annual Global Music Awards.',
+    perkLabel: '+10% Global Streams',
+    perkType: 'streams',
+    perkValue: 0.1,
+  },
+  {
+    id: 'ach_10m_worth',
+    title: 'Eight-Figure Worth',
+    desc: 'Reach $10M+ total Net Worth.',
+    perkLabel: '+7 Max Energy',
+    perkType: 'energy',
+    perkValue: 7,
+  },
+];
+
+export const ORIGIN_STORIES: OriginStory[] = [
+  {
+    id: 'bedroom_prodigy',
+    title: 'Bedroom Prodigy',
+    tagline: 'Taught yourself production on a cracked laptop.',
+    startingCash: 2200,
+    startingPop: 9,
+    startingFame: 1,
+    bonusFollowers: 400,
+    heatStart: 0,
+    skillBoosts: { production: 38, songwriting: 30 },
+    perkSummary: '+Production & Songwriting · $2.2K',
+  },
+  {
+    id: 'viral_kid',
+    title: 'Viral Freestyle Kid',
+    tagline: 'One car-freestyle clip blew up overnight.',
+    startingCash: 1500,
+    startingPop: 19,
+    startingFame: 2,
+    bonusFollowers: 18500,
+    heatStart: 0,
+    skillBoosts: { marketing: 40, stagePresence: 28 },
+    perkSummary: 'Fame Lv.2 · +18K Followers · $1.5K',
+  },
+  {
+    id: 'industry_connect',
+    title: 'Industry Nepo Connect',
+    tagline: 'Grew up backstage watching platinum sessions.',
+    startingCash: 25000,
+    startingPop: 15,
+    startingFame: 2,
+    bonusFollowers: 4500,
+    heatStart: 0,
+    skillBoosts: { marketing: 34, songwriting: 26 },
+    perkSummary: '$25K Capital · Fame Lv.2',
+  },
+  {
+    id: 'street_hustler',
+    title: 'Street Hustler',
+    tagline: 'Moved CDs out the trunk before hitting streaming.',
+    startingCash: 6500,
+    startingPop: 12,
+    startingFame: 1,
+    bonusFollowers: 1200,
+    heatStart: 14,
+    skillBoosts: { stagePresence: 36, songwriting: 28 },
+    perkSummary: '$6.5K Cash · High Grit (+14% Heat)',
+  },
+  {
+    id: 'choir_vocalist',
+    title: 'Choir Vocalist',
+    tagline: 'Classically trained voice with massive range.',
+    startingCash: 2800,
+    startingPop: 10,
+    startingFame: 1,
+    bonusFollowers: 950,
+    heatStart: 0,
+    skillBoosts: { vocals: 44, songwriting: 32 },
+    perkSummary: 'Elite Vocals Skill · $2.8K',
+  },
+  {
+    id: 'reality_star',
+    title: 'TV Talent Finalist',
+    tagline: 'Finished top 3 on a national singing show.',
+    startingCash: 12000,
+    startingPop: 24,
+    startingFame: 3,
+    bonusFollowers: 26000,
+    heatStart: 0,
+    skillBoosts: { vocals: 34, stagePresence: 38 },
+    perkSummary: 'Fame Lv.3 · $12K · +26K Fans',
+  },
+  {
+    id: 'college_band',
+    title: 'College Underground',
+    tagline: 'Sold out campus basements every Friday night.',
+    startingCash: 3400,
+    startingPop: 13,
+    startingFame: 1,
+    bonusFollowers: 3200,
+    heatStart: 0,
+    skillBoosts: { stagePresence: 40, production: 26 },
+    perkSummary: 'High Live Presence · $3.4K',
+  },
+  {
+    id: 'ghostwriter',
+    title: 'Anonymous Ghostwriter',
+    tagline: 'Wrote hooks for stars—now taking center stage.',
+    startingCash: 9500,
+    startingPop: 8,
+    startingFame: 1,
+    bonusFollowers: 600,
+    heatStart: 0,
+    skillBoosts: { songwriting: 48, vocals: 24 },
+    perkSummary: 'Master Songwriting · $9.5K',
+  },
+];
 
 export const MONTH_NAMES = [
   'JANUARY',
@@ -76,7 +357,7 @@ export const RECORD_LABELS: RecordLabel[] = [
     tier: 'Indie Label',
     minFame: 2,
     advance: 45000,
-    royaltyPercent: 65,
+    royaltyPercent: 68,
     albumsRequired: 1,
     promoBonus: 1.25,
     description: 'Solid indie distribution deal with playlist connections and modest tour support.',
@@ -98,7 +379,7 @@ export const RECORD_LABELS: RecordLabel[] = [
     tier: 'Major',
     minFame: 7,
     advance: 1200000,
-    royaltyPercent: 40,
+    royaltyPercent: 42,
     albumsRequired: 2,
     promoBonus: 2.0,
     description: 'Worldwide arena touring machine and guaranteed global playlist placements.',
@@ -116,8 +397,6 @@ export const RECORD_LABELS: RecordLabel[] = [
   },
 ];
 
-// Build exact catalog counts matching the ROCKSTAR screenshots:
-// 47 Vehicles, 50 Real Estate, 57 Clothes, 15 Jewelry, 12 Factories
 const VEHICLE_NAMES = [
   'Used 2004 Civic', 'Beater Pickup', 'Vintage Moped', 'Compact Hatchback', 'Sport Coupe',
   'City Sedan', 'Street Motorcycle', 'Off-Road Jeep', 'Executive Sedan', 'Classic Muscle',
@@ -127,21 +406,28 @@ const VEHICLE_NAMES = [
   'Stretched Limo', 'Maybach Cruiser', 'Executive Chopper', 'Rolls Ghost', 'Rolls Phantom',
   'Hypercar Prototype', 'Gold-Trimmed Wraith', 'Bespoke Touring Bus', 'Twin-Turbo V12', 'Emerald Chiron',
   'Private Speedboat', '45ft Coastal Yacht', '90ft Superyacht', 'Twin-Engine Helicopter', 'Turboprop Jet',
-  'Mid-Size Private Jet', 'Long-Range Gulfstream', 'Custom Tour Bus Fleet', 'Vintage Gullwing',
+  'Mid-Size Private Jet', 'Long-Range Gulfstream G650', 'Custom Tour Bus Fleet', 'Vintage Gullwing',
   'Collector Le Mans', '200ft Mega Yacht', 'Boeing Business Jet',
 ];
 
 export const VEHICLES_CATALOG: CatalogItem[] = VEHICLE_NAMES.map((name, idx) => {
   const price = Math.round(3500 * Math.pow(1.235, idx) / 100) * 100;
+  const energyBonus = idx >= 38 ? 6 : idx >= 26 ? 3 : idx >= 14 ? 1 : 0;
+  const hypeBonus = idx >= 30 ? 4 : idx >= 18 ? 2 : 1;
   return {
     id: `veh_${idx + 1}`,
     category: 'vehicle',
     name,
     price,
     weeklyCost: Math.round(price * 0.004),
+    energyBonus,
+    hypeBonus,
     statusGain: Math.round(250 + Math.pow(idx + 1, 2.3) * 12),
-    tierLabel: idx < 10 ? 'Street' : idx < 25 ? 'Luxury' : idx < 38 ? 'Exotic' : 'Mogul',
-    description: `Prestige ride #${idx + 1}. Boosts public status and flex credibility.`,
+    tierLabel: idx < 10 ? 'Street' : idx < 25 ? 'Luxury' : idx < 38 ? 'Exotic' : 'Private Aviation & Mogul',
+    description:
+      energyBonus > 0
+        ? `Prestige ride #${idx + 1}. Cuts travel fatigue (+${energyBonus} Energy/day recovery, +${hypeBonus} Hype/wk).`
+        : `Prestige ride #${idx + 1}. Boosts public status and flex credibility.`,
   };
 });
 
@@ -160,15 +446,19 @@ const REAL_ESTATE_NAMES = [
 
 export const REAL_ESTATE_CATALOG: CatalogItem[] = REAL_ESTATE_NAMES.map((name, idx) => {
   const price = Math.round(45000 * Math.pow(1.155, idx) / 500) * 500;
+  const energyBonus = idx >= 35 ? 8 : idx >= 20 ? 5 : idx >= 8 ? 3 : 1;
+  const hypeBonus = idx >= 25 ? 3 : 1;
   return {
     id: `re_${idx + 1}`,
     category: 'realestate',
     name,
     price,
     weeklyCost: Math.round(price * 0.0025),
+    energyBonus,
+    hypeBonus,
     statusGain: Math.round(400 + Math.pow(idx + 1, 2.35) * 15),
     tierLabel: idx < 12 ? 'Starter' : idx < 28 ? 'Luxury' : idx < 42 ? 'Estate' : 'Iconic',
-    description: `Property asset boosting net worth, recovery energy, and status.`,
+    description: `Property asset (+${energyBonus} Energy/day recovery, +${hypeBonus} Hype/wk, boosts Net Worth).`,
   };
 });
 
@@ -262,12 +552,71 @@ export const FACTORIES_CATALOG: CatalogItem[] = FACTORIES_DATA.map((f, idx) => (
   description: `Generates $${f.weeklyIncome.toLocaleString()}/wk revenue ($${f.weeklyCost.toLocaleString()}/wk operating spend).`,
 }));
 
-export const INITIAL_NPCS: NpcArtist[] = [
+// 54 Active AI Rival Artists across all Fame Tiers & Genres
+const EXTRA_NPCS_SPEC: Array<{
+  name: string;
+  genre: MusicGenre;
+  tier: NpcArtist['tier'];
+  fame: number;
+  listeners: number;
+  hit: string;
+  color: string;
+}> = [
+  { name: 'Starfest', genre: 'Pop', tier: 'Superstar', fame: 10, listeners: 34200000, hit: 'Shattered', color: '#2563eb' },
+  { name: 'Soundwave', genre: 'Electronic', tier: 'Superstar', fame: 9, listeners: 28400000, hit: 'Neon Pulse', color: '#0284c7' },
+  { name: 'Synthesizer', genre: 'Indie', tier: 'Mainstream', fame: 8, listeners: 19600000, hit: 'Static Waves', color: '#7c3aed' },
+  { name: 'Beatmaker', genre: 'R&B', tier: 'Mainstream', fame: 8, listeners: 18100000, hit: 'Groove Theory', color: '#059669' },
+  { name: 'Kanye North', genre: 'Hip-Hop', tier: 'Legend', fame: 12, listeners: 54000000, hit: 'Crown & Concrete', color: '#b91c1c' },
+  { name: 'Drakeo Sun', genre: 'Melodic Rap', tier: 'Legend', fame: 12, listeners: 51500000, hit: '4AM In Calabasas', color: '#ca8a04' },
+  { name: 'Aria Grande', genre: 'Pop', tier: 'Legend', fame: 11, listeners: 47000000, hit: 'Silver Halo', color: '#db2777' },
+  { name: 'Burna Coast', genre: 'Afrobeats', tier: 'Superstar', fame: 10, listeners: 32500000, hit: 'Lagos Heat', color: '#16a34a' },
+  { name: 'Bad Benito', genre: 'Reggaeton', tier: 'Legend', fame: 11, listeners: 49200000, hit: 'Sol y Fuego', color: '#ea580c' },
+  { name: 'Sable Seoul', genre: 'K-Pop', tier: 'Superstar', fame: 10, listeners: 36800000, hit: 'Velvet Voltage', color: '#9333ea' },
+  { name: 'Cench UK', genre: 'Drill', tier: 'Superstar', fame: 9, listeners: 26300000, hit: 'West End Cold', color: '#475569' },
+  { name: 'Travis Echo', genre: 'Trap', tier: 'Legend', fame: 11, listeners: 44800000, hit: 'Rodeo Skies', color: '#78350f' },
+  { name: 'Morgan Boone', genre: 'Country', tier: 'Superstar', fame: 10, listeners: 31000000, hit: 'Dust & Bourbon', color: '#9a3412' },
+  { name: 'SZA Moon', genre: 'Soul', tier: 'Superstar', fame: 10, listeners: 35600000, hit: 'Saturn Tides', color: '#0f766e' },
+  { name: 'Billie Shade', genre: 'Alternative', tier: 'Superstar', fame: 10, listeners: 38900000, hit: 'Glass Eyes', color: '#15803d' },
+  { name: 'FKA Nova', genre: 'Hyperpop', tier: 'Mainstream', fame: 7, listeners: 11200000, hit: 'Chrome Kiss', color: '#c026d3' },
+  { name: 'Tyla Breeze', genre: 'Amapiano', tier: 'Mainstream', fame: 8, listeners: 21400000, hit: 'Waterline', color: '#0891b2' },
+  { name: 'Fred Again+', genre: 'House', tier: 'Mainstream', fame: 8, listeners: 22900000, hit: 'Delilah Nights', color: '#4f46e5' },
+  { name: 'Charlotte V', genre: 'Techno', tier: 'Mainstream', fame: 7, listeners: 13800000, hit: 'Berlin 4AM', color: '#334155' },
+  { name: 'Skepta K', genre: 'Grime', tier: 'Mainstream', fame: 8, listeners: 14500000, hit: 'Shutdown II', color: '#dc2626' },
+  { name: 'Feid Rojo', genre: 'Latin Trap', tier: 'Mainstream', fame: 8, listeners: 24100000, hit: 'Luna Roja', color: '#16a34a' },
+  { name: 'Silk Sonic Jr', genre: 'Funk', tier: 'Mainstream', fame: 7, listeners: 15200000, hit: '777 Velvet', color: '#d97706' },
+  { name: 'Ghost Mane', genre: 'Metal', tier: 'Mainstream', fame: 7, listeners: 11800000, hit: 'Iron Sermon', color: '#18181b' },
+  { name: 'Blink Riot', genre: 'Punk', tier: 'Mainstream', fame: 7, listeners: 12400000, hit: 'Suburban Static', color: '#be123c' },
+  { name: 'Midnight Synth', genre: 'Synthpop', tier: 'Mainstream', fame: 7, listeners: 16100000, hit: 'Afterhours', color: '#6d28d9' },
+  { name: 'Kamasi Reed', genre: 'Jazz', tier: 'Rising', fame: 5, listeners: 5200000, hit: 'Blue Note Drift', color: '#1d4ed8' },
+  { name: 'Maverick Choir', genre: 'Gospel', tier: 'Mainstream', fame: 7, listeners: 10900000, hit: 'Grace Rising', color: '#b45309' },
+  { name: 'Joey Bada$$ Jr', genre: 'Boom Bap', tier: 'Mainstream', fame: 7, listeners: 12100000, hit: '1999 Tape', color: '#374151' },
+  { name: 'Noah Pines', genre: 'Folk', tier: 'Mainstream', fame: 8, listeners: 19400000, hit: 'Northern Train', color: '#3f6212' },
+  { name: 'Dua Mirror', genre: 'Disco', tier: 'Superstar', fame: 10, listeners: 37400000, hit: 'Levitating Night', color: '#a21caf' },
+  { name: 'Nujabes Mist', genre: 'Lo-Fi', tier: 'Rising', fame: 6, listeners: 8900000, hit: 'Rainy Vinyl', color: '#0369a1' },
+  { name: 'Shenseea Gold', genre: 'Dancehall', tier: 'Mainstream', fame: 7, listeners: 14100000, hit: 'Kingston Fire', color: '#eab308' },
+  { name: 'Arctic Ghosts', genre: 'Rock', tier: 'Superstar', fame: 9, listeners: 27800000, hit: 'AM Shadows', color: '#1e293b' },
+  { name: 'Vexx Montana', genre: 'Trap', tier: 'Rising', fame: 5, listeners: 4900000, hit: 'Double Cup', color: '#7e22ce' },
+  { name: 'Zuri Luxe', genre: 'R&B', tier: 'Rising', fame: 5, listeners: 5600000, hit: 'Silk Pillow', color: '#be185d' },
+  { name: 'Juno Blade', genre: 'Drill', tier: 'Rising', fame: 4, listeners: 3100000, hit: 'Brixton Mist', color: '#3f3f46' },
+  { name: 'Koda Beats', genre: 'Hip-Hop', tier: 'Rising', fame: 5, listeners: 4400000, hit: 'Concrete Psalm', color: '#047857' },
+  { name: 'Lana Skies', genre: 'Alternative', tier: 'Superstar', fame: 9, listeners: 29500000, hit: 'Summertime Sadness II', color: '#831843' },
+  { name: 'Rema Pulse', genre: 'Afrobeats', tier: 'Mainstream', fame: 8, listeners: 20500000, hit: 'Calm Fever', color: '#b91c1c' },
+  { name: 'Tame Horizon', genre: 'Indie', tier: 'Mainstream', fame: 8, listeners: 18700000, hit: 'Let It Flow', color: '#4338ca' },
+  { name: 'Pixel Kid', genre: 'Hyperpop', tier: 'Underground', fame: 2, listeners: 620000, hit: 'Glitch Heart', color: '#ec4899' },
+  { name: 'Slim Shady 99', genre: 'Boom Bap', tier: 'Underground', fame: 3, listeners: 1150000, hit: 'Basement Cypher', color: '#52525b' },
+  { name: 'Naija Wave', genre: 'Amapiano', tier: 'Underground', fame: 3, listeners: 1400000, hit: 'Log Drum Bounce', color: '#0d9488' },
+  { name: 'Cali Sun', genre: 'Pop', tier: 'Underground', fame: 2, listeners: 480000, hit: 'Boardwalk', color: '#f59e0b' },
+  { name: 'Drip Velo', genre: 'Trap', tier: 'Underground', fame: 3, listeners: 980000, hit: 'Late Shift', color: '#6366f1' },
+  { name: 'Raven Hollow', genre: 'Rock', tier: 'Underground', fame: 2, listeners: 540000, hit: 'Garage Amp', color: '#991b1b' },
+];
+
+const CORE_NPCS: NpcArtist[] = [
   {
     id: 'npc_zilla',
     name: 'ZillaMorgue',
     handle: '@zillamorgue',
     genre: 'Trap',
+    tier: 'Superstar',
     fame: 9,
     clout: 88,
     monthlyListeners: 24500000,
@@ -283,6 +632,7 @@ export const INITIAL_NPCS: NpcArtist[] = [
     name: 'Mariah Carei',
     handle: '@mariahcarei',
     genre: 'R&B',
+    tier: 'Legend',
     fame: 10,
     clout: 94,
     monthlyListeners: 38200000,
@@ -298,6 +648,7 @@ export const INITIAL_NPCS: NpcArtist[] = [
     name: 'Young Marshall',
     handle: '@youngmarshall',
     genre: 'Hip-Hop',
+    tier: 'Mainstream',
     fame: 8,
     clout: 82,
     monthlyListeners: 19400000,
@@ -313,6 +664,7 @@ export const INITIAL_NPCS: NpcArtist[] = [
     name: 'Ember',
     handle: '@embermusic',
     genre: 'Hip-Hop',
+    tier: 'Rising',
     fame: 4,
     clout: 48,
     monthlyListeners: 2100000,
@@ -328,6 +680,7 @@ export const INITIAL_NPCS: NpcArtist[] = [
     name: 'Kairo Vance',
     handle: '@kairovance',
     genre: 'R&B',
+    tier: 'Mainstream',
     fame: 7,
     clout: 76,
     monthlyListeners: 14800000,
@@ -343,6 +696,7 @@ export const INITIAL_NPCS: NpcArtist[] = [
     name: 'Vespera',
     handle: '@vespera',
     genre: 'Pop',
+    tier: 'Superstar',
     fame: 9,
     clout: 91,
     monthlyListeners: 31500000,
@@ -358,6 +712,7 @@ export const INITIAL_NPCS: NpcArtist[] = [
     name: 'Lil Nova',
     handle: '@lilnova',
     genre: 'Trap',
+    tier: 'Rising',
     fame: 6,
     clout: 69,
     monthlyListeners: 9200000,
@@ -373,6 +728,7 @@ export const INITIAL_NPCS: NpcArtist[] = [
     name: 'Solis',
     handle: '@solisband',
     genre: 'Indie',
+    tier: 'Rising',
     fame: 5,
     clout: 58,
     monthlyListeners: 6400000,
@@ -385,7 +741,84 @@ export const INITIAL_NPCS: NpcArtist[] = [
   },
 ];
 
+export const INITIAL_NPCS: NpcArtist[] = [
+  ...CORE_NPCS,
+  ...EXTRA_NPCS_SPEC.map((spec, idx) => {
+    const cleanHandle = `@${spec.name.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+    const initials = spec.name
+      .split(' ')
+      .map((p) => p[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
+    return {
+      id: `npc_ext_${idx + 1}`,
+      name: spec.name,
+      handle: cleanHandle,
+      genre: spec.genre,
+      tier: spec.tier,
+      fame: spec.fame,
+      clout: Math.min(99, 24 + spec.fame * 7),
+      monthlyListeners: spec.listeners,
+      relationship: idx % 9 === 0 ? ('rival' as const) : ('neutral' as const),
+      relationshipScore: idx % 9 === 0 ? -15 : 10,
+      featFee: Math.round((1500 + Math.pow(spec.fame, 2.2) * 850) / 500) * 500,
+      avatarColor: spec.color,
+      initials,
+      signatureHit: spec.hit,
+    };
+  }),
+];
+
 export const INITIAL_NPC_SONGS: NpcChartSong[] = [
+  {
+    id: 'npc_song_starfest',
+    title: 'Shattered',
+    artistName: 'Starfest',
+    artistId: 'npc_ext_1',
+    coverUrl: COVER_ARTS[3].url,
+    genre: 'Pop',
+    weeklyStreams: 18400000,
+    totalStreams: 142000000,
+    peak: 1,
+    weeksOnChart: 14,
+  },
+  {
+    id: 'npc_song_soundwave',
+    title: 'Neon Pulse',
+    artistName: 'Soundwave',
+    artistId: 'npc_ext_2',
+    coverUrl: COVER_ARTS[1].url,
+    genre: 'Electronic',
+    weeklyStreams: 16200000,
+    totalStreams: 112000000,
+    peak: 2,
+    weeksOnChart: 11,
+  },
+  {
+    id: 'npc_song_synth',
+    title: 'Static Waves',
+    artistName: 'Synthesizer',
+    artistId: 'npc_ext_3',
+    coverUrl: COVER_ARTS[0].url,
+    genre: 'Indie',
+    weeklyStreams: 15100000,
+    totalStreams: 94000000,
+    peak: 3,
+    weeksOnChart: 9,
+  },
+  {
+    id: 'npc_song_beatmaker',
+    title: 'Groove Theory',
+    artistName: 'Beatmaker',
+    artistId: 'npc_ext_4',
+    coverUrl: COVER_ARTS[2].url,
+    genre: 'R&B',
+    weeklyStreams: 14400000,
+    totalStreams: 88000000,
+    peak: 4,
+    weeksOnChart: 10,
+  },
   {
     id: 'npc_song_1',
     title: 'Neon Mirage',
@@ -393,7 +826,7 @@ export const INITIAL_NPC_SONGS: NpcChartSong[] = [
     artistId: 'npc_vespera',
     coverUrl: COVER_ARTS[3].url,
     genre: 'Pop',
-    weeklyStreams: 18400000,
+    weeklyStreams: 13800000,
     totalStreams: 142000000,
     peak: 1,
     weeksOnChart: 14,
@@ -405,7 +838,7 @@ export const INITIAL_NPC_SONGS: NpcChartSong[] = [
     artistId: 'npc_zilla',
     coverUrl: COVER_ARTS[2].url,
     genre: 'Trap',
-    weeklyStreams: 15200000,
+    weeklyStreams: 12900000,
     totalStreams: 98000000,
     peak: 2,
     weeksOnChart: 11,
@@ -417,7 +850,7 @@ export const INITIAL_NPC_SONGS: NpcChartSong[] = [
     artistId: 'npc_mariah',
     coverUrl: COVER_ARTS[0].url,
     genre: 'R&B',
-    weeklyStreams: 13900000,
+    weeklyStreams: 12100000,
     totalStreams: 164000000,
     peak: 1,
     weeksOnChart: 19,
@@ -429,7 +862,7 @@ export const INITIAL_NPC_SONGS: NpcChartSong[] = [
     artistId: 'npc_kairo',
     coverUrl: COVER_ARTS[1].url,
     genre: 'R&B',
-    weeklyStreams: 11400000,
+    weeklyStreams: 10800000,
     totalStreams: 67000000,
     peak: 4,
     weeksOnChart: 9,
@@ -482,6 +915,18 @@ export const INITIAL_NPC_SONGS: NpcChartSong[] = [
     peak: 9,
     weeksOnChart: 12,
   },
+  ...INITIAL_NPCS.slice(12, 36).map((npc, i) => ({
+    id: `npc_song_auto_${i + 1}`,
+    title: npc.signatureHit,
+    artistName: npc.name,
+    artistId: npc.id,
+    coverUrl: COVER_ARTS[i % COVER_ARTS.length].url,
+    genre: npc.genre,
+    weeklyStreams: Math.max(1100000, Math.round(npc.monthlyListeners * 0.28)),
+    totalStreams: Math.round(npc.monthlyListeners * 1.4),
+    peak: Math.min(95, 10 + i * 2),
+    weeksOnChart: 2 + (i % 14),
+  })),
 ];
 
 export const INITIAL_LINKUP_POOL: LinkupProfile[] = [
@@ -542,13 +987,15 @@ export const INITIAL_LINKUP_POOL: LinkupProfile[] = [
   },
 ];
 
-export function createBiigMtPresetState(): GameState {
+export function createBiigMtPresetState(difficulty: DifficultyMode = 'Realistic'): GameState {
   return {
     phase: 'PLAYING',
+    difficulty,
     artistName: 'Biig MT',
     handle: '@biigmt',
     genre: 'Hip-Hop',
     hometown: 'Atlanta, GA',
+    originStoryTitle: 'Bedroom Prodigy',
     avatar: {
       skinTone: '#c69072',
       hairStyle: 'bald',
@@ -556,40 +1003,118 @@ export function createBiigMtPresetState(): GameState {
       facialHair: 'none',
       eyewear: 'none',
       outfitId: 'cloth_1',
-      jewelryIds: [],
+      jewelryIds: ['jewel_2'],
       auraColor: '#2d4a35',
     },
     date: {
-      day: 8,
+      day: 15,
       month: 9,
       year: 2027,
-      totalDays: 615,
-      totalWeeks: 88,
+      totalDays: 622,
+      totalWeeks: 89,
     },
     fameLevel: 10,
-    popularity: 107.7,
-    energy: 25,
-    maxEnergy: 25,
-    cash: 4100000,
-    netWorth: 4500000,
-    statusPoints: 0,
+    popularity: 121.2,
+    hype: 95,
+    reputation: 'Elite',
+    energy: 85,
+    maxEnergy: 100,
+    cash: 4200000,
+    netWorth: 4300000,
+    statusPoints: 9350,
     statusTarget: 48089134,
 
-    producerRank: 'Bedroom Producer',
-    producerDelivered: 0,
+    skills: {
+      songwriting: 82,
+      vocals: 74,
+      production: 79,
+      stagePresence: 86,
+      marketing: 77,
+    },
+    merchStoreLevel: 2,
+    merchItems: [
+      {
+        id: 'merch_1',
+        name: 'Hollow City Heavyweight Hoodie',
+        type: 'Hoodie',
+        eraAlbumTitle: 'Hollow City Era',
+        price: 85,
+        costToProduce: 28,
+        unitsSold: 14200,
+        weeklyRevenue: 19400,
+        active: true,
+      },
+    ],
+    awardsHistory: [
+      {
+        id: 'aw_2026_1',
+        year: 2026,
+        showName: 'Global Music Awards',
+        category: 'Breakout Artist',
+        nomineeTitle: 'Biig MT',
+        won: true,
+      },
+    ],
+    plaques: [
+      {
+        id: 'plaque_hollow_plat',
+        targetId: 'song_hollow_city',
+        title: 'Hollow City',
+        type: 'Single',
+        tier: 'Multi-Platinum',
+        units: 6750000,
+        dateStr: '12.8.2027',
+        coverUrl: COVER_ARTS[0].url,
+      },
+      {
+        id: 'plaque_cold_plat',
+        targetId: 'song_cold_roads',
+        title: 'Cold Roads',
+        type: 'Single',
+        tier: 'Multi-Platinum',
+        units: 3333333,
+        dateStr: '18.7.2027',
+        coverUrl: COVER_ARTS[1].url,
+      },
+      {
+        id: 'plaque_slimy_gold',
+        targetId: 'song_slimy',
+        title: 'SLIMY',
+        type: 'Single',
+        tier: 'Gold',
+        units: 816000,
+        dateStr: '20.5.2027',
+        coverUrl: COVER_ARTS[2].url,
+      },
+    ],
+    unlockedAchievements: [
+      'ach_first_drop',
+      'ach_hot100',
+      'ach_no1_hit',
+      'ach_gold_plaque',
+      'ach_platinum_plaque',
+      'ach_viral_wave',
+      'ach_merch_mogul',
+      'ach_award_winner',
+    ],
+    lastAwardYearProcessed: 2026,
+
+    producerRank: 'Chart Producer',
+    producerDelivered: 12,
     actorRank: 'Lead',
     actorCredits: 15,
     heatLevel: 8,
     inJailDays: 0,
 
     contract: null,
-    studio: { ...STUDIO_LEVELS[0] },
+    playerLabel: null,
+    studio: { ...STUDIO_LEVELS[2] },
     activeTour: null,
 
-    ownedVehicles: [],
-    ownedRealEstate: [],
+    ownedVehicles: ['veh_14'],
+    ownedRealEstate: ['re_15'],
     ownedClothes: ['cloth_1', 'cloth_2'],
-    ownedJewelry: [],
+    ownedJewelry: ['jewel_2'],
     ownedFactories: [],
 
     songs: [
@@ -611,8 +1136,10 @@ export function createBiigMtPresetState(): GameState {
         totalStreams: 81000000,
         weeklyStreams: 22400000,
         dailyStreams: 3200000,
+        unitsSold: 6750000,
         peakChartPos: 1,
         currentChartPos: 1,
+        regionalPeaks: { Global: 1, 'North America': 1, Europe: 2, UK: 2 },
         weeksOnChart: 12,
         viralScore: 92,
         playlistReach: 88,
@@ -639,8 +1166,10 @@ export function createBiigMtPresetState(): GameState {
         totalStreams: 40000000,
         weeklyStreams: 8900000,
         dailyStreams: 1270000,
+        unitsSold: 3333333,
         peakChartPos: 3,
         currentChartPos: 6,
+        regionalPeaks: { Global: 3, 'North America': 2, Europe: 6, UK: 4 },
         weeksOnChart: 18,
         viralScore: 76,
         playlistReach: 71,
@@ -667,8 +1196,10 @@ export function createBiigMtPresetState(): GameState {
         totalStreams: 9800000,
         weeklyStreams: 2100000,
         dailyStreams: 300000,
+        unitsSold: 816000,
         peakChartPos: 14,
         currentChartPos: 19,
+        regionalPeaks: { Global: 14, 'North America': 11, Europe: 24, UK: 18 },
         weeksOnChart: 9,
         viralScore: 60,
         playlistReach: 52,
@@ -693,8 +1224,10 @@ export function createBiigMtPresetState(): GameState {
         totalStreams: 3500000,
         weeklyStreams: 680000,
         dailyStreams: 97000,
+        unitsSold: 291000,
         peakChartPos: 31,
         currentChartPos: 44,
+        regionalPeaks: { Global: 31, 'North America': 24, Europe: 48, UK: 39 },
         weeksOnChart: 15,
         viralScore: 41,
         playlistReach: 38,
@@ -719,8 +1252,10 @@ export function createBiigMtPresetState(): GameState {
         totalStreams: 2700000,
         weeklyStreams: 520000,
         dailyStreams: 74000,
+        unitsSold: 225000,
         peakChartPos: 42,
         currentChartPos: 58,
+        regionalPeaks: { Global: 42, 'North America': 35, Europe: 61, UK: 49 },
         weeksOnChart: 11,
         viralScore: 35,
         playlistReach: 31,
@@ -735,15 +1270,37 @@ export function createBiigMtPresetState(): GameState {
     npcs: [...INITIAL_NPCS],
 
     socialFollowers: {
-      youtube: 43000,
-      instaglam: 88000,
-      x: 23000,
-      tictok: 94000,
-      fakebook: 51000,
-      soundifyMonthly: 18400000,
+      youtube: 185000,
+      instaglam: 420000,
+      x: 164000,
+      tictok: 610000,
+      fakebook: 92000,
+      soundifyMonthly: 22400000,
     },
 
     emails: [
+      {
+        id: 'mail_label_offer',
+        fromName: 'Horizon Global Music',
+        fromEmail: 'ar@horizonglobal.com',
+        initials: 'HG',
+        avatarColor: '#2563eb',
+        category: 'deals',
+        subject: 'Pending Major Label Offer (3-Album Deal)',
+        preview: 'Biig MT — Horizon Global wants to offer a $1.8M advance with negotiable royalty splits...',
+        body: 'Congratulations on holding #1 on the Global Hot 100! Horizon Global Music wants to sign you to a blockbuster 3-album major label partnership. Review the offer below and negotiate your Royalty Split before signing.',
+        dateLabel: 'Today',
+        read: false,
+        actionType: 'sign_label',
+        actionPayload: {
+          labelId: 'horizon_global',
+          labelName: 'Horizon Global Music',
+          advance: 1800000,
+          royaltyPercent: 45,
+          albumsRequired: 3,
+          promoBonus: 2.0,
+        },
+      },
       {
         id: 'mail_1',
         fromName: 'kayla.music',
@@ -755,20 +1312,6 @@ export function createBiigMtPresetState(): GameState {
         preview: 'Hey Biig MT! "Hollow City" got me through this year. I play it every mornin...',
         body: 'Hey Biig MT! "Hollow City" got me through this year. I play it every morning on the train before work. The verse with ZillaMorgue & Mariah Carei gave me chills. Never stop dropping real music!',
         dateLabel: 'Today',
-        read: false,
-        actionType: 'reply_fan',
-      },
-      {
-        id: 'mail_2',
-        fromName: 'Theo B.',
-        fromEmail: 'theo.b@mail.com',
-        initials: 'TB',
-        avatarColor: '#0d9488',
-        category: 'primary',
-        subject: '"Cold Roads"',
-        preview: 'Hey Biig MT! "Cold Roads" hit different at 2 a.m. Please never stop making ...',
-        body: 'Hey Biig MT! "Cold Roads" hit different at 2 a.m. Please never stop making late-night anthems like this. When are you touring Europe?',
-        dateLabel: 'Yesterday',
         read: false,
         actionType: 'reply_fan',
       },
@@ -788,18 +1331,19 @@ export function createBiigMtPresetState(): GameState {
         actionPayload: { npcId: 'npc_zilla', songTitle: 'Midnight Crown' },
       },
       {
-        id: 'mail_4',
-        fromName: 'jordan_k',
-        fromEmail: 'jordan_k@mail.com',
-        initials: 'JK',
-        avatarColor: '#2563eb',
-        category: 'primary',
-        subject: '"Heavy Skies"',
-        preview: 'Hey Biig MT! "Heavy Skies" is on repeat in my car. My little sister knows e...',
-        body: 'Hey Biig MT! "Heavy Skies" is on repeat in my car. My little sister knows every lyric word for word. Proud to be a day-one fan!',
-        dateLabel: '8/22/27',
+        id: 'mail_festival_1',
+        fromName: 'Coachella Mainstage',
+        fromEmail: 'bookings@coachellalive.com',
+        initials: 'CM',
+        avatarColor: '#059669',
+        category: 'deals',
+        subject: 'Headline Set Offer ($250K Guarantee)',
+        preview: 'Our festival organizers want you on the Saturday Mainstage lineup...',
+        body: 'Biig MT, fans flooded our social channels requesting your Hollow City set. Accept to perform a headline festival slot for $250,000 + massive Europe & North America exposure.',
+        dateLabel: '2d ago',
         read: true,
-        actionType: 'reply_fan',
+        actionType: 'festival_invite',
+        actionPayload: { reward: 250000, energy: 14, popGain: 4.5 },
       },
     ],
 
@@ -814,15 +1358,15 @@ export function createBiigMtPresetState(): GameState {
         isVerified: true,
         isNews: true,
         linkDomain: 'ROLLINGROCK.COM',
-        headline: 'New artist on the scene: Ember (Hip-Hop) debuts with "Paper Paradise".',
-        content: 'New artist on the scene: Ember (Hip-Hop) debuts with "Paper Paradise".',
-        likes: 4820,
-        comments: 312,
-        shares: 640,
-        timeAgo: '18h',
+        headline: 'Biig MT announces potential World Tour & Major Label negotiations as "Hollow City" holds #1.',
+        content: 'Chart dominance confirmed as "Hollow City" retains #1 on the Global Billboard Hot 100.',
+        likes: 18420,
+        comments: 912,
+        shares: 2640,
+        timeAgo: '3h',
         commentsList: [
-          { id: 'c1', author: 'Young Marshall', text: 'Fresh sound on this one.' },
-          { id: 'c2', author: 'kayla.music', text: 'Still streaming Hollow City #1 tho!' },
+          { id: 'c1', author: 'Young Marshall', text: 'Well deserved.' },
+          { id: 'c2', author: 'kayla.music', text: 'Need the World Stadium tour ASAP!' },
         ],
       },
       {
@@ -850,7 +1394,7 @@ export function createBiigMtPresetState(): GameState {
         authorInitials: 'CD',
         authorColor: '#0ea5e9',
         isVerified: true,
-        content: 'Hot 100 Top 3: #1 Hollow City (@biigmt) · #2 Neon Mirage (@vespera) · #3 No Mercy (@zillamorgue).',
+        content: 'Hot 100 Top 3: #1 Hollow City (@biigmt) · #2 Shattered (@starfest) · #3 Neon Pulse (@soundwave).',
         likes: 19800,
         comments: 820,
         shares: 4300,
@@ -865,7 +1409,7 @@ export function createBiigMtPresetState(): GameState {
         authorInitials: 'BM',
         authorColor: '#10b981',
         isVerified: true,
-        content: '81M on Hollow City. Late nights in the bedroom studio paying off. Album loading.',
+        content: '81M on Hollow City. Multi-Platinum plaque on the wall. Album loading.',
         imageUrl: COVER_ARTS[0].url,
         likes: 34200,
         comments: 1210,
@@ -883,7 +1427,7 @@ export function createBiigMtPresetState(): GameState {
         authorInitials: 'BM',
         authorColor: '#111827',
         isVerified: true,
-        content: 'POV: You made Hollow City on a $400 laptop #hollowcity #hiphop #newmusic',
+        content: 'POV: You went from a $400 laptop to #1 on Billboard #hollowcity #hiphop',
         songId: 'song_hollow_city',
         songTitle: 'Hollow City - Biig MT',
         likes: 184000,
@@ -919,17 +1463,17 @@ export function createBiigMtPresetState(): GameState {
     notifications: [
       {
         id: 'notif_1',
-        title: 'Love cost you $3160 this week',
-        detail: 'partner $2560, connections $600.',
-        deltaText: '+9',
-        dateStr: '8.9.2027',
+        title: 'Multi-Platinum Plaque Minted',
+        detail: '"Hollow City" crossed 6.75M equivalent units globally.',
+        deltaText: '🏆',
+        dateStr: '15.9.2027',
         unread: true,
       },
       {
         id: 'notif_2',
-        title: 'CHAGING Premiere (1)',
-        detail: 'Your acting credit premiere boosted popularity.',
-        dateStr: '8.9.2027',
+        title: 'Horizon Global Contract Offer',
+        detail: 'Major label sent a 3-album $1.8M advance offer to your Mail.',
+        dateStr: '15.9.2027',
         unread: true,
       },
     ],
@@ -943,7 +1487,7 @@ export function createBiigMtPresetState(): GameState {
         color: '#ec4899',
         weeklyCost: 2560,
         loyalty: 86,
-        perkText: 'Boosts inspiration & mental recovery (+3 Energy/wk)',
+        perkText: 'Boosts inspiration & mental recovery (+4 Energy/wk)',
         isPartner: true,
       },
       {
@@ -972,6 +1516,7 @@ export function createBiigMtPresetState(): GameState {
       songsReleased: 5,
       videosShot: 2,
       highestWeeklyStreams: 22400000,
+      soldOutArenas: 1,
     },
 
     muted: false,
@@ -986,22 +1531,32 @@ export function createRookieCareerState(params: {
   handle: string;
   genre: MusicGenre;
   hometown: string;
+  difficulty?: DifficultyMode;
+  originStory?: OriginStory;
   avatar: GameState['avatar'];
 }): GameState {
+  const story = params.originStory || ORIGIN_STORIES[0];
+  const difficulty = params.difficulty || 'Realistic';
+  const diffCfg = DIFFICULTY_CONFIGS[difficulty];
   const cleanHandle = params.handle.startsWith('@') ? params.handle : `@${params.handle}`;
-  const initials = params.artistName
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase() || 'AR';
+  const initials =
+    params.artistName
+      .split(' ')
+      .map((w) => w[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase() || 'AR';
+
+  const startCash = Math.round(story.startingCash * diffCfg.cashMult);
 
   return {
     phase: 'PLAYING',
+    difficulty,
     artistName: params.artistName,
     handle: cleanHandle,
     genre: params.genre,
     hometown: params.hometown,
+    originStoryTitle: story.title,
     avatar: params.avatar,
     date: {
       day: 1,
@@ -1010,23 +1565,40 @@ export function createRookieCareerState(params: {
       totalDays: 1,
       totalWeeks: 0,
     },
-    fameLevel: 1,
-    popularity: 8.5,
-    energy: 25,
-    maxEnergy: 25,
-    cash: 2500,
-    netWorth: 2500,
+    fameLevel: story.startingFame,
+    popularity: story.startingPop,
+    hype: 45,
+    reputation: story.startingFame >= 3 ? 'Rising' : 'Underground',
+    energy: 100,
+    maxEnergy: 100,
+    cash: startCash,
+    netWorth: startCash,
     statusPoints: 0,
     statusTarget: 50000,
+
+    skills: {
+      songwriting: story.skillBoosts.songwriting || 20,
+      vocals: story.skillBoosts.vocals || 20,
+      production: story.skillBoosts.production || 20,
+      stagePresence: story.skillBoosts.stagePresence || 20,
+      marketing: story.skillBoosts.marketing || 20,
+    },
+    merchStoreLevel: 1,
+    merchItems: [],
+    awardsHistory: [],
+    plaques: [],
+    unlockedAchievements: [],
+    lastAwardYearProcessed: 2025,
 
     producerRank: 'Bedroom Producer',
     producerDelivered: 0,
     actorRank: 'Uncredited',
     actorCredits: 0,
-    heatLevel: 0,
+    heatLevel: story.heatStart,
     inJailDays: 0,
 
     contract: null,
+    playerLabel: null,
     studio: { ...STUDIO_LEVELS[0] },
     activeTour: null,
 
@@ -1042,12 +1614,12 @@ export function createRookieCareerState(params: {
     npcs: [...INITIAL_NPCS],
 
     socialFollowers: {
-      youtube: 140,
-      instaglam: 320,
-      x: 95,
-      tictok: 410,
-      fakebook: 180,
-      soundifyMonthly: 850,
+      youtube: 140 + Math.round(story.bonusFollowers * 0.25),
+      instaglam: 320 + Math.round(story.bonusFollowers * 0.35),
+      x: 95 + Math.round(story.bonusFollowers * 0.15),
+      tictok: 410 + Math.round(story.bonusFollowers * 0.55),
+      fakebook: 180 + Math.round(story.bonusFollowers * 0.2),
+      soundifyMonthly: 850 + Math.round(story.bonusFollowers * 0.6),
     },
 
     emails: [
@@ -1059,8 +1631,8 @@ export function createRookieCareerState(params: {
         avatarColor: '#16a34a',
         category: 'primary',
         subject: `Welcome to Soundify, ${params.artistName}`,
-        preview: 'Your verified artist portal is live. Record your first track in the Studio...',
-        body: `Welcome ${params.artistName}! Your artist profile is verified and ready. Head to the Studio tab to record your first song, pitch it on Streaming, and drop snippets on TicTok to start climbing the Hot 100.`,
+        preview: 'Your verified artist portal is live. Record your first track in Studio & Releases...',
+        body: `Welcome ${params.artistName} (${story.title} · ${diffCfg.subtitle})! Your artist profile is verified and ready. Head to Studio & Releases to record your first song, design custom cover art, and drop snippets on Chirper & TicTok to climb the Hot 100.`,
         dateLabel: 'Today',
         read: false,
       },
@@ -1092,11 +1664,11 @@ export function createRookieCareerState(params: {
         isVerified: true,
         isNews: true,
         linkDomain: 'ROLLINGROCK.COM',
-        headline: 'New artist on the scene: Ember (Hip-Hop) debuts with "Paper Paradise".',
-        content: 'New artist on the scene: Ember (Hip-Hop) debuts with "Paper Paradise".',
-        likes: 2140,
-        comments: 142,
-        shares: 290,
+        headline: `Newcomer ${params.artistName} (${params.genre}) enters the ${params.hometown} scene.`,
+        content: `Word out of ${params.hometown}: ${params.artistName} (${story.title}) is prepping their debut single.`,
+        likes: 1140,
+        comments: 82,
+        shares: 190,
         timeAgo: '4h',
         commentsList: [],
       },
@@ -1108,7 +1680,7 @@ export function createRookieCareerState(params: {
         authorInitials: 'CD',
         authorColor: '#0ea5e9',
         isVerified: true,
-        content: 'This week at #1: Neon Mirage by @vespera continues a dominant run atop the Hot 100.',
+        content: 'This week at #1: Shattered by @starfest continues a dominant run atop the Hot 100.',
         likes: 15200,
         comments: 610,
         shares: 2100,
@@ -1123,7 +1695,7 @@ export function createRookieCareerState(params: {
         authorInitials: initials,
         authorColor: '#10b981',
         isVerified: false,
-        content: 'Day 1. Laptop, headphones, and a dream. First single coming soon.',
+        content: `${story.tagline} First single coming soon.`,
         likes: 48,
         comments: 6,
         shares: 2,
@@ -1135,8 +1707,8 @@ export function createRookieCareerState(params: {
     notifications: [
       {
         id: 'notif_start',
-        title: 'Career Started',
-        detail: `Welcome to ${params.hometown}. Record your first song in the Studio!`,
+        title: `Origin: ${story.title}`,
+        detail: `${story.perkSummary} · Mode: ${diffCfg.subtitle}`,
         dateStr: '1.1.2026',
         unread: true,
       },
@@ -1156,6 +1728,7 @@ export function createRookieCareerState(params: {
       songsReleased: 0,
       videosShot: 0,
       highestWeeklyStreams: 0,
+      soldOutArenas: 0,
     },
 
     muted: false,
