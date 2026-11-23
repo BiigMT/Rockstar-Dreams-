@@ -36,7 +36,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
   unreadBadgeCount = 0,
 }) => {
   return (
-    <nav className="px-2.5 pb-2.5 pt-1.5 bg-[#0b0c10]/95 border-t border-white/[0.06] shrink-0">
+    <nav aria-label="Career navigation" className="rockstar-dock px-2.5 pt-2 shrink-0">
       <div className="grid grid-cols-7 gap-1">
         {DOCK_ITEMS.map(({ id, label, Icon }) => {
           const active = activeTab === id;
@@ -46,21 +46,20 @@ export const BottomDock: React.FC<BottomDockProps> = ({
               type="button"
               onClick={() => onSelectTab(id)}
               aria-label={label}
-              className={`relative py-2 rounded-xl flex flex-col items-center justify-center gap-1 snap-transition ${
-                active
-                  ? 'bg-amber-400/12 text-amber-400 border border-amber-400/25'
-                  : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.03] border border-transparent'
+              aria-current={active ? 'page' : undefined}
+              className={`rockstar-dock-item relative py-2 flex flex-col items-center justify-center gap-1 snap-transition border ${
+                active ? 'is-active' : 'border-transparent hover:text-zinc-200 hover:bg-white/[0.035]'
               }`}
             >
               {active && (
-                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-amber-400" />
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-7 h-[2px] rounded-full bg-amber-300 shadow-[0_0_9px_rgba(246,185,59,.55)]" />
               )}
-              <Icon className="w-[18px] h-[18px] stroke-[2]" />
-              <span className="text-[9px] font-bold tracking-wide leading-none">
+              <Icon className="w-[19px] h-[19px] stroke-[1.9]" />
+              <span className="text-[9px] font-extrabold leading-none">
                 {label}
               </span>
               {id === 'phone' && unreadBadgeCount > 0 && (
-                <span className="absolute top-1 right-1.5 min-w-[14px] h-[14px] px-1 rounded-full bg-rose-500 text-[9px] font-bold text-white flex items-center justify-center tabular-nums">
+                <span className="absolute top-1 right-1 min-w-[14px] h-[14px] px-1 rounded-full bg-rose-500 text-[9px] font-bold text-white flex items-center justify-center tabular-nums">
                   {unreadBadgeCount > 9 ? '9+' : unreadBadgeCount}
                 </span>
               )}
